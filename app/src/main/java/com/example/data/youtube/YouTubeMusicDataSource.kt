@@ -494,7 +494,7 @@ class YouTubeMusicDataSource {
 
                 if (mediaUrl.isNullOrBlank()) {
                     val moreInfo = item.optJSONObject("more_info")
-                    mediaUrl = moreInfo?.optString("media_url", null)
+                    mediaUrl = moreInfo?.optString("media_url", "")?.ifEmpty { null }
                 }
 
                 if (!mediaUrl.isNullOrBlank()) {
@@ -677,7 +677,7 @@ class YouTubeMusicDataSource {
                     if (imageArr != null && imageArr.length() > 0) {
                         artworkUrl = imageArr.getJSONObject(imageArr.length() - 1).optString("url")
                     } else {
-                        artworkUrl = item.optString("image", null)
+                        artworkUrl = item.optString("image", "").ifEmpty { null }
                     }
 
                     // Extract Full Stream URL (prefer 320kbps or 160kbps)
@@ -693,7 +693,7 @@ class YouTubeMusicDataSource {
                             }
                         }
                     } else {
-                        streamUrl = item.optString("url", null)
+                        streamUrl = item.optString("url", "").ifEmpty { null }
                     }
 
                     if (!streamUrl.isNullOrBlank()) {

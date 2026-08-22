@@ -29,22 +29,23 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
-          cache: 'gradle'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
-      - name: Accept Android SDK Licenses & Install Platform 36
+      - name: Accept Android SDK Licenses
         run: |
           mkdir -p "$ANDROID_HOME/licenses" || true
-          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license"
-          echo "84831b9409646a53fe443b788269e7d4c4e7d228" >> "$ANDROID_HOME/licenses/android-sdk-license"
-          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> "$ANDROID_HOME/licenses/android-sdk-license"
-          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
-          echo "84831b9409646a53fe443b788269e7d4c4e7d228" >> "$ANDROID_HOME/licenses/android-sdk-preview-license"
-          
+          mkdir -p "$ANDROID_SDK_ROOT/licenses" || true
+          for dir in "$ANDROID_HOME/licenses" "$ANDROID_SDK_ROOT/licenses"; do
+            [ -d "$dir" ] || continue
+            printf "24333f8a63b6825ea9c5514f83c2829b004d1fee\n84831b9409646a53fe443b788269e7d4c4e7d228\nd56f5187479451eabf01fb78af6dfcb131a6481e\n" > "$dir/android-sdk-license"
+            printf "24333f8a63b6825ea9c5514f83c2829b004d1fee\n84831b9409646a53fe443b788269e7d4c4e7d228\n" > "$dir/android-sdk-preview-license"
+            printf "85622d5ae7d07180981310ac6e4f8701a96a2430\n" > "$dir/android-sdk-arm-dbt-license"
+            printf "33b6a2b64607f11b759f320ef9dff4ae5c47d97a\n" > "$dir/google-gdk-license"
+            printf "e9acab5b5fbb560a725114ecaa70b5d7419ee5f6\n" > "$dir/mips-android-sysimage-license"
+          done
           yes | sdkmanager --licenses || true
-          sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools" || true
 
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
@@ -67,8 +68,11 @@ jobs:
 
           # Decode or generate debug.keystore
           if [ -f debug.keystore.base64 ]; then
-            base64 -d debug.keystore.base64 > debug.keystore
-          elif [ ! -f debug.keystore ]; then
+            base64 -d debug.keystore.base64 > debug.keystore 2>/dev/null || base64 -d -i debug.keystore.base64 > debug.keystore 2>/dev/null || true
+          fi
+
+          # If debug.keystore is missing or empty, generate a valid key
+          if [ ! -s debug.keystore ]; then
             keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           fi
 
@@ -77,8 +81,9 @@ jobs:
 
       - name: Create GitHub Release & Attach Debug APK
         uses: softprops/action-gh-release@v2
-        if: startsWith(github.ref, 'refs/tags/')
+        if: startsWith(github.ref, 'refs/tags/') || github.event_name == 'workflow_dispatch'
         with:
+          tag_name: ${{ github.event.inputs.tag_name || github.ref_name }}
           files: app/build/outputs/apk/debug/*.apk
           generate_release_notes: true
         env:
