@@ -1,4 +1,4 @@
-name: Android CI & Build APK
+name: Android Build Debug APK
 
 on:
   push:
@@ -6,23 +6,13 @@ on:
   pull_request:
     branches: [ "main", "master" ]
   workflow_dispatch:
-    inputs:
-      build_type:
-        description: 'Build Type'
-        required: true
-        default: 'debug'
-        type: choice
-        options:
-          - debug
-          - release
-          - both
 
 permissions:
   contents: read
 
 jobs:
-  build:
-    name: Build & Test Android App
+  build-debug:
+    name: Build Debug APK
     runs-on: ubuntu-latest
 
     steps:
@@ -34,12 +24,20 @@ jobs:
         with:
           java-version: '17'
           distribution: 'temurin'
+          cache: 'gradle'
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
 
       - name: Accept Android SDK Licenses & Install Platform 36
         run: |
+          mkdir -p "$ANDROID_HOME/licenses" || true
+          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-license"
+          echo "84831b9409646a53fe443b788269e7d4c4e7d228" >> "$ANDROID_HOME/licenses/android-sdk-license"
+          echo "d56f5187479451eabf01fb78af6dfcb131a6481e" >> "$ANDROID_HOME/licenses/android-sdk-license"
+          echo "24333f8a63b6825ea9c5514f83c2829b004d1fee" > "$ANDROID_HOME/licenses/android-sdk-preview-license"
+          echo "84831b9409646a53fe443b788269e7d4c4e7d228" >> "$ANDROID_HOME/licenses/android-sdk-preview-license"
+          
           yes | sdkmanager --licenses || true
           sdkmanager "platforms;android-36" "build-tools;36.0.0" "platform-tools" || true
 
@@ -48,13 +46,12 @@ jobs:
         with:
           gradle-version: '9.3.1'
 
-      - name: Prepare Environment & Keystores
-        env:
-          KEYSTORE_BASE64: ${{ secrets.KEYSTORE_BASE64 }}
-          STORE_PASSWORD_SECRET: ${{ secrets.STORE_PASSWORD }}
-          KEY_PASSWORD_SECRET: ${{ secrets.KEY_PASSWORD }}
+      - name: Grant Execute Permission for Gradlew
+        run: chmod +x ./gradlew || true
+
+      - name: Prepare Environment & Debug Keystore
         run: |
-          # Copy .env.example to .env if .env is missing
+          # Prepare .env file
           if [ ! -f .env ]; then
             if [ -f .env.example ]; then
               cp .env.example .env
@@ -63,49 +60,24 @@ jobs:
             fi
           fi
 
-          # Decode debug keystore if present as base64
+          # Decode or generate debug.keystore
           if [ -f debug.keystore.base64 ]; then
             base64 -d debug.keystore.base64 > debug.keystore
           elif [ ! -f debug.keystore ]; then
             keytool -genkey -v -keystore debug.keystore -storepass android -alias androiddebugkey -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Debug,O=Android,C=US"
           fi
 
-          # Handle release keystore if provided as secret, or create fallback
-          if [ -n "$KEYSTORE_BASE64" ]; then
-            echo "$KEYSTORE_BASE64" | base64 -d > "${GITHUB_WORKSPACE}/my-upload-key.jks"
-            echo "STORE_PASSWORD=${STORE_PASSWORD_SECRET:-android}" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=${KEY_PASSWORD_SECRET:-android}" >> $GITHUB_ENV
-          elif [ ! -f "${GITHUB_WORKSPACE}/my-upload-key.jks" ]; then
-            keytool -genkey -v -keystore "${GITHUB_WORKSPACE}/my-upload-key.jks" -storepass android -alias upload -keypass android -keyalg RSA -keysize 2048 -validity 10000 -dname "CN=Android Release,O=Android,C=US"
-            echo "STORE_PASSWORD=android" >> $GITHUB_ENV
-            echo "KEY_PASSWORD=android" >> $GITHUB_ENV
-          fi
-
       - name: Run Unit Tests
-        run: gradle :app:testDebugUnitTest --stacktrace
+        run: gradle :app:testDebugUnitTest --stacktrace --no-daemon
 
       - name: Build Debug APK
-        if: ${{ github.event.inputs.build_type == 'debug' || github.event.inputs.build_type == 'both' || github.event_name != 'workflow_dispatch' }}
-        run: gradle :app:assembleDebug --stacktrace
-
-      - name: Build Release APK
-        if: ${{ github.event.inputs.build_type == 'release' || github.event.inputs.build_type == 'both' }}
-        run: gradle :app:assembleRelease --stacktrace
+        run: gradle :app:assembleDebug --stacktrace --no-daemon
 
       - name: Upload Debug APK Artifact
-        if: ${{ github.event.inputs.build_type == 'debug' || github.event.inputs.build_type == 'both' || github.event_name != 'workflow_dispatch' }}
         uses: actions/upload-artifact@v4
         with:
-          name: outer-tune-debug-apk
+          name: app-debug-apk
           path: app/build/outputs/apk/debug/*.apk
-          retention-days: 14
-
-      - name: Upload Release APK Artifact
-        if: ${{ github.event.inputs.build_type == 'release' || github.event.inputs.build_type == 'both' }}
-        uses: actions/upload-artifact@v4
-        with:
-          name: outer-tune-release-apk
-          path: app/build/outputs/apk/release/*.apk
           retention-days: 14
 
       - name: Upload Test Results
