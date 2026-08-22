@@ -1,0 +1,6 @@
+{
+  "name": "OuterTune",
+  "description": "Material 3 Local & YouTube Music Player with synced lyrics, offline caching, equalizer, and persistent queue.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
