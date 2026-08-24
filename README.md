@@ -1,4 +1,4 @@
-<img width="620" height="218" alt="CordWave-extnd" src="https://github.com/user-attachments/assets/548b57a2-db7c-488b-8e92-7df04f45a26d" />
+<img width="620" alt="CordWave-extnd" src="https://github.com/user-attachments/assets/548b57a2-db7c-488b-8e92-7df04f45a26d" />
 
 <svg width="620" height="218" viewBox="0 0 620 218" fill="none" xmlns="http://www.w3.org/2000/svg">
 <g clip-path="url(#clip0_2_2)">
