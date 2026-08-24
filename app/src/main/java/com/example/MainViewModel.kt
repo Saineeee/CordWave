@@ -88,6 +88,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isOledBlack = MutableStateFlow(false)
     val isOledBlack: StateFlow<Boolean> = _isOledBlack.asStateFlow()
 
+    private val _useDynamicColor = MutableStateFlow(true)
+    val useDynamicColor: StateFlow<Boolean> = _useDynamicColor.asStateFlow()
+
     private val _accentColorIndex = MutableStateFlow(0)
     val accentColorIndex: StateFlow<Int> = _accentColorIndex.asStateFlow()
 
@@ -173,6 +176,14 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
     fun toggleOledBlack() {
         _isOledBlack.value = !_isOledBlack.value
+    }
+
+    fun toggleDynamicColor() {
+        _useDynamicColor.value = !_useDynamicColor.value
+    }
+
+    fun setDynamicColor(enabled: Boolean) {
+        _useDynamicColor.value = enabled
     }
 
     fun setAccentColor(index: Int) {

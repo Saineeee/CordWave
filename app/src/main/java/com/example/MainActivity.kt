@@ -51,11 +51,13 @@ class MainActivity : ComponentActivity() {
         setContent {
             val isOledBlack by viewModel.isOledBlack.collectAsState()
             val accentIndex by viewModel.accentColorIndex.collectAsState()
+            val useDynamicColor by viewModel.useDynamicColor.collectAsState()
 
             MyApplicationTheme(
                 darkTheme = true,
                 isOled = isOledBlack,
-                accentIndex = accentIndex
+                accentIndex = accentIndex,
+                dynamicColor = useDynamicColor
             ) {
                 OuterTuneMainApp(viewModel = viewModel)
             }
@@ -143,6 +145,7 @@ fun OuterTuneMainApp(viewModel: MainViewModel) {
 
     val isOled by viewModel.isOledBlack.collectAsState()
     val accentIndex by viewModel.accentColorIndex.collectAsState()
+    val useDynamicColor by viewModel.useDynamicColor.collectAsState()
 
     val navItems = listOf(
         NavItem(MainNavTab.HOME, "Home", Icons.Filled.Home, Icons.Outlined.Home),
@@ -174,8 +177,8 @@ fun OuterTuneMainApp(viewModel: MainViewModel) {
                 // Bottom Navigation Bar
                 NavigationBar(
                     modifier = Modifier.testTag("main_bottom_nav"),
-                    containerColor = if (isOled) Color.Black else MaterialTheme.colorScheme.surface,
-                    tonalElevation = 8.dp
+                    containerColor = if (isOled) Color.Black else MaterialTheme.colorScheme.surfaceContainer,
+                    tonalElevation = 6.dp
                 ) {
                     navItems.forEach { item ->
                         val selected = (currentTab == item.tab && selectedAlbum == null && selectedArtist == null && selectedPlaylist == null && selectedFolder == null && !showStatsScreen && !showSettingsScreen)
@@ -212,8 +215,10 @@ fun OuterTuneMainApp(viewModel: MainViewModel) {
                 showSettingsScreen -> {
                     SettingsScreen(
                         isOledBlack = isOled,
+                        useDynamicColor = useDynamicColor,
                         accentIndex = accentIndex,
                         onToggleOled = { viewModel.toggleOledBlack() },
+                        onToggleDynamicColor = { viewModel.toggleDynamicColor() },
                         onSelectAccent = { viewModel.setAccentColor(it) },
                         onOpenEqualizer = { viewModel.setShowEqualizer(true) },
                         onRescanLibrary = { viewModel.rescanLocalLibrary() },

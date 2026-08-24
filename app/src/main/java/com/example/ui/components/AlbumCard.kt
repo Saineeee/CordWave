@@ -33,9 +33,9 @@ fun AlbumCard(
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .testTag("album_card_${album.id}"),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         )
     ) {
         Column(modifier = Modifier.padding(10.dp)) {
@@ -43,8 +43,8 @@ fun AlbumCard(
                 modifier = Modifier
                     .fillMaxWidth()
                     .aspectRatio(1f)
-                    .clip(RoundedCornerShape(12.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .clip(RoundedCornerShape(16.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                 contentAlignment = Alignment.Center
             ) {
                 if (!album.artworkUri.isNullOrEmpty()) {
@@ -63,13 +63,13 @@ fun AlbumCard(
                     )
                 }
 
-                // Quick Play FAB in bottom-right corner
+                // Quick Play Action in bottom-right corner
                 FilledIconButton(
                     onClick = onPlay,
                     modifier = Modifier
                         .align(Alignment.BottomEnd)
                         .padding(8.dp)
-                        .size(36.dp),
+                        .size(38.dp),
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
                         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -83,14 +83,17 @@ fun AlbumCard(
                 }
             }
 
-            Spacer(modifier = Modifier.height(8.dp))
+            Spacer(modifier = Modifier.height(10.dp))
 
             Text(
                 text = album.title,
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+
+            Spacer(modifier = Modifier.height(2.dp))
 
             Text(
                 text = "${album.artist} • ${album.songCount} songs",
@@ -102,3 +105,4 @@ fun AlbumCard(
         }
     }
 }
+

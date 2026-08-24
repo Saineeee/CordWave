@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -13,7 +14,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.testTag
@@ -45,12 +45,20 @@ fun LibraryScreen(
     if (showCreateDialog) {
         AlertDialog(
             onDismissRequest = { showCreateDialog = false },
-            title = { Text("New Playlist") },
+            shape = RoundedCornerShape(28.dp),
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+            title = {
+                Text(
+                    "New Playlist",
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+                )
+            },
             text = {
                 OutlinedTextField(
                     value = newPlaylistTitle,
                     onValueChange = { newPlaylistTitle = it },
                     label = { Text("Playlist Name") },
+                    shape = RoundedCornerShape(16.dp),
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -64,6 +72,7 @@ fun LibraryScreen(
                             showCreateDialog = false
                         }
                     },
+                    shape = CircleShape,
                     enabled = newPlaylistTitle.isNotBlank()
                 ) {
                     Text("Create")
@@ -88,12 +97,17 @@ fun LibraryScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
+                    .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 12.dp)
             ) {
                 Text(
                     text = "Your Library",
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
+                    style = MaterialTheme.typography.headlineMedium.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = (-0.5).sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "Playlists, downloads & favorites",
                     style = MaterialTheme.typography.bodyMedium,
@@ -102,7 +116,7 @@ fun LibraryScreen(
             }
         }
 
-        // 2x2 Quick Access Grid
+        // 2x2 Quick Access Grid (Pixel Material 3 Cards)
         item {
             Column(
                 modifier = Modifier
@@ -118,7 +132,8 @@ fun LibraryScreen(
                         title = "Liked Songs",
                         subtitle = "${likedSongs.size} tracks",
                         icon = Icons.Default.Favorite,
-                        gradientColors = listOf(Color(0xFFE91E63), Color(0xFFFF5252)),
+                        iconBg = MaterialTheme.colorScheme.primaryContainer,
+                        iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
                         onClick = onOpenLikedSongs,
                         modifier = Modifier.weight(1f)
                     )
@@ -127,7 +142,8 @@ fun LibraryScreen(
                         title = "Downloads",
                         subtitle = "${downloads.size} offline tracks",
                         icon = Icons.Default.DownloadDone,
-                        gradientColors = listOf(Color(0xFF00B0FF), Color(0xFF00E676)),
+                        iconBg = MaterialTheme.colorScheme.secondaryContainer,
+                        iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
                         onClick = onOpenDownloads,
                         modifier = Modifier.weight(1f)
                     )
@@ -141,7 +157,8 @@ fun LibraryScreen(
                         title = "History",
                         subtitle = "${recentHistory.size} played recently",
                         icon = Icons.Default.History,
-                        gradientColors = listOf(Color(0xFF7C4DFF), Color(0xFFB388FF)),
+                        iconBg = MaterialTheme.colorScheme.tertiaryContainer,
+                        iconTint = MaterialTheme.colorScheme.onTertiaryContainer,
                         onClick = onOpenHistory,
                         modifier = Modifier.weight(1f)
                     )
@@ -150,7 +167,8 @@ fun LibraryScreen(
                         title = "Device Folders",
                         subtitle = "Audio directories",
                         icon = Icons.Default.Folder,
-                        gradientColors = listOf(Color(0xFFFF9100), Color(0xFFFFD180)),
+                        iconBg = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        iconTint = MaterialTheme.colorScheme.primary,
                         onClick = onOpenFolders,
                         modifier = Modifier.weight(1f)
                     )
@@ -170,15 +188,18 @@ fun LibraryScreen(
             ) {
                 Text(
                     text = "Playlists (${playlists.size})",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
                 FilledTonalButton(
                     onClick = { showCreateDialog = true },
+                    shape = CircleShape,
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
                     modifier = Modifier.testTag("create_playlist_button")
                 ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("New")
+                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("New", style = MaterialTheme.typography.labelMedium)
                 }
             }
             Spacer(modifier = Modifier.height(8.dp))
@@ -189,20 +210,28 @@ fun LibraryScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(40.dp),
+                        .padding(48.dp),
                     contentAlignment = Alignment.Center
                 ) {
                     Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.QueueMusic,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(modifier = Modifier.height(10.dp))
+                        Box(
+                            modifier = Modifier
+                                .size(56.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.QueueMusic,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(28.dp)
+                            )
+                        }
+                        Spacer(modifier = Modifier.height(12.dp))
                         Text(
                             text = "No custom playlists yet",
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
@@ -210,33 +239,35 @@ fun LibraryScreen(
             }
         } else {
             items(playlists) { playlist ->
-                Surface(
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 6.dp)
+                        .padding(horizontal = 20.dp, vertical = 4.dp)
                         .clickable { onSelectPlaylist(playlist) }
                         .testTag("playlist_item_${playlist.id}"),
-                    shape = RoundedCornerShape(14.dp),
-                    color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                    shape = RoundedCornerShape(18.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    )
                 ) {
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
-                            .padding(12.dp),
+                            .padding(14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
-                                .clip(RoundedCornerShape(10.dp))
+                                .size(44.dp)
+                                .clip(RoundedCornerShape(12.dp))
                                 .background(MaterialTheme.colorScheme.primaryContainer),
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
                                 imageVector = Icons.Default.QueueMusic,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(26.dp)
+                                tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                modifier = Modifier.size(24.dp)
                             )
                         }
 
@@ -245,9 +276,11 @@ fun LibraryScreen(
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
                                 text = playlist.title,
-                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
                                 text = "${playlist.songCount} songs • Playlist",
                                 style = MaterialTheme.typography.bodySmall,
@@ -255,11 +288,18 @@ fun LibraryScreen(
                             )
                         }
 
-                        IconButton(onClick = { onDeletePlaylist(playlist.id) }) {
+                        FilledTonalIconButton(
+                            onClick = { onDeletePlaylist(playlist.id) },
+                            modifier = Modifier.size(36.dp),
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                            )
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.DeleteOutline,
                                 contentDescription = "Delete Playlist",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(18.dp)
                             )
                         }
                     }
@@ -274,56 +314,58 @@ private fun LibraryQuickCard(
     title: String,
     subtitle: String,
     icon: ImageVector,
-    gradientColors: List<Color>,
+    iconBg: Color,
+    iconTint: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Card(
         modifier = modifier
-            .height(100.dp)
+            .height(110.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(18.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         )
     ) {
-        Box(modifier = Modifier.fillMaxSize()) {
-            Column(
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(14.dp),
+            verticalArrangement = Arrangement.SpaceBetween
+        ) {
+            Box(
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(14.dp),
-                verticalArrangement = Arrangement.SpaceBetween
+                    .size(38.dp)
+                    .clip(CircleShape)
+                    .background(iconBg),
+                contentAlignment = Alignment.Center
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(RoundedCornerShape(8.dp))
-                        .background(Brush.linearGradient(gradientColors)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = null,
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
-                    )
-                }
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    tint = iconTint,
+                    modifier = Modifier.size(20.dp)
+                )
+            }
 
-                Column {
-                    Text(
-                        text = title,
-                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                        maxLines = 1
-                    )
-                    Text(
-                        text = subtitle,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        fontSize = 11.sp,
-                        maxLines = 1
-                    )
-                }
+            Column {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1
+                )
+                Spacer(modifier = Modifier.height(1.dp))
+                Text(
+                    text = subtitle,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontSize = 11.sp,
+                    maxLines = 1
+                )
             }
         }
     }
 }
+

@@ -4,6 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
@@ -16,7 +17,9 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
@@ -51,16 +54,22 @@ fun MiniPlayer(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 4.dp)
-                    .height(64.dp)
-                    .clip(RoundedCornerShape(16.dp))
+                    .padding(horizontal = 14.dp, vertical = 6.dp)
+                    .height(68.dp)
+                    .shadow(elevation = 10.dp, shape = RoundedCornerShape(22.dp))
+                    .clip(RoundedCornerShape(22.dp))
+                    .border(
+                        width = 1.dp,
+                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+                        shape = RoundedCornerShape(22.dp)
+                    )
                     .clickable(onClick = onClick)
                     .pointerInput(Unit) {
                         detectHorizontalDragGestures(
                             onDragEnd = {
-                                if (totalDrag > 100f) {
+                                if (totalDrag > 80f) {
                                     onSkipPrevious()
-                                } else if (totalDrag < -100f) {
+                                } else if (totalDrag < -80f) {
                                     onSkipNext()
                                 }
                                 totalDrag = 0f
@@ -71,23 +80,22 @@ fun MiniPlayer(
                         )
                     }
                     .testTag("mini_player_container"),
-                color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.95f),
-                tonalElevation = 6.dp,
-                shadowElevation = 8.dp
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                tonalElevation = 8.dp
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     Row(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(start = 8.dp, end = 12.dp),
+                            .padding(start = 10.dp, end = 14.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Artwork Thumbnail
+                        // Artwork Squircle
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
-                                .clip(RoundedCornerShape(10.dp))
-                                .background(MaterialTheme.colorScheme.surface),
+                                .clip(RoundedCornerShape(12.dp))
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                             contentAlignment = Alignment.Center
                         ) {
                             if (!song.albumArtUri.isNullOrEmpty()) {
@@ -115,12 +123,14 @@ fun MiniPlayer(
                         ) {
                             Text(
                                 text = song.title,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
+                            Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = song.artist,
+                                text = "${song.artist} • ${if (song.source == MediaSource.LOCAL) "On Device" else "Online"}",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1,
@@ -128,11 +138,11 @@ fun MiniPlayer(
                             )
                         }
 
-                        // Play/Pause button
+                        // Play/Pause Pill Button
                         FilledIconButton(
                             onClick = onPlayPause,
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(42.dp)
                                 .testTag("mini_player_play_pause"),
                             colors = IconButtonDefaults.filledIconButtonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
@@ -152,7 +162,7 @@ fun MiniPlayer(
                         IconButton(
                             onClick = onSkipNext,
                             modifier = Modifier
-                                .size(40.dp)
+                                .size(38.dp)
                                 .testTag("mini_player_skip_next")
                         ) {
                             Icon(
@@ -164,7 +174,7 @@ fun MiniPlayer(
                         }
                     }
 
-                    // Bottom progress indicator line
+                    // Bottom progress indicator line with rounded track
                     LinearProgressIndicator(
                         progress = { progress.coerceIn(0f, 1f) },
                         modifier = Modifier
@@ -172,10 +182,12 @@ fun MiniPlayer(
                             .height(3.dp)
                             .align(Alignment.BottomCenter),
                         color = MaterialTheme.colorScheme.primary,
-                        trackColor = Color.Transparent
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        strokeCap = StrokeCap.Round
                     )
                 }
             }
         }
     }
 }
+

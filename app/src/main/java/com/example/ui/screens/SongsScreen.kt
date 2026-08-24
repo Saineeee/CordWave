@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -83,7 +84,7 @@ fun SongsScreen(
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp)
+                    .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp)
             ) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -92,12 +93,26 @@ fun SongsScreen(
                 ) {
                     Text(
                         text = "All Songs",
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
+                        style = MaterialTheme.typography.headlineMedium.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = (-0.5).sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
                     )
 
                     Box {
-                        IconButton(onClick = { showSortMenu = true }) {
-                            Icon(Icons.Default.Sort, contentDescription = "Sort Songs")
+                        FilledTonalIconButton(
+                            onClick = { showSortMenu = true },
+                            modifier = Modifier.size(42.dp),
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                            )
+                        ) {
+                            Icon(
+                                Icons.Default.Sort,
+                                contentDescription = "Sort Songs",
+                                modifier = Modifier.size(20.dp)
+                            )
                         }
 
                         DropdownMenu(
@@ -136,6 +151,7 @@ fun SongsScreen(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(2.dp))
                 Text(
                     text = "${filteredSongs.size} tracks available",
                     style = MaterialTheme.typography.bodyMedium,
@@ -150,31 +166,35 @@ fun SongsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 4.dp),
+                    .padding(horizontal = 20.dp, vertical = 6.dp),
                 horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 FilterChip(
                     selected = selectedFilter == SongFilter.ALL,
                     onClick = { selectedFilter = SongFilter.ALL },
-                    label = { Text("All (${allSongs.size})") }
+                    shape = CircleShape,
+                    label = { Text("All (${allSongs.size})", style = MaterialTheme.typography.labelMedium) }
                 )
                 FilterChip(
                     selected = selectedFilter == SongFilter.LOCAL,
                     onClick = { selectedFilter = SongFilter.LOCAL },
+                    shape = CircleShape,
                     leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    label = { Text("Local Only") }
+                    label = { Text("Local", style = MaterialTheme.typography.labelMedium) }
                 )
                 FilterChip(
                     selected = selectedFilter == SongFilter.YOUTUBE,
                     onClick = { selectedFilter = SongFilter.YOUTUBE },
+                    shape = CircleShape,
                     leadingIcon = { Icon(Icons.Default.Cloud, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    label = { Text("YouTube Music") }
+                    label = { Text("YouTube", style = MaterialTheme.typography.labelMedium) }
                 )
                 FilterChip(
                     selected = selectedFilter == SongFilter.OFFLINE,
                     onClick = { selectedFilter = SongFilter.OFFLINE },
+                    shape = CircleShape,
                     leadingIcon = { Icon(Icons.Default.DownloadDone, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    label = { Text("Offline Ready") }
+                    label = { Text("Offline", style = MaterialTheme.typography.labelMedium) }
                 )
             }
         }
@@ -184,27 +204,29 @@ fun SongsScreen(
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Button(
                     onClick = { onPlayAll(filteredSongs, false) },
                     modifier = Modifier.weight(1f),
+                    shape = CircleShape,
                     enabled = filteredSongs.isNotEmpty()
                 ) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = null)
+                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Play All")
+                    Text("Play All", style = MaterialTheme.typography.labelLarge)
                 }
 
                 FilledTonalButton(
                     onClick = { onPlayAll(filteredSongs, true) },
                     modifier = Modifier.weight(1f),
+                    shape = CircleShape,
                     enabled = filteredSongs.isNotEmpty()
                 ) {
-                    Icon(Icons.Default.Shuffle, contentDescription = null)
+                    Icon(Icons.Default.Shuffle, contentDescription = null, modifier = Modifier.size(20.dp))
                     Spacer(modifier = Modifier.width(6.dp))
-                    Text("Shuffle")
+                    Text("Shuffle", style = MaterialTheme.typography.labelLarge)
                 }
             }
         }
@@ -251,3 +273,4 @@ fun SongsScreen(
         }
     }
 }
+

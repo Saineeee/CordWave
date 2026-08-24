@@ -3,6 +3,7 @@ package com.example.ui.components
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Equalizer
@@ -74,8 +75,8 @@ fun EqualizerDialog(
                 .fillMaxWidth(0.95f)
                 .fillMaxHeight(0.88f)
                 .testTag("equalizer_dialog"),
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 8.dp
         ) {
             Column(
@@ -137,6 +138,7 @@ fun EqualizerDialog(
                                 bands = presetValues[idx]
                                 emitChange()
                             },
+                            shape = CircleShape,
                             label = { Text(name, fontSize = 12.sp) }
                         )
                     }
@@ -282,6 +284,7 @@ fun EqualizerDialog(
                 // Close Button
                 Button(
                     onClick = onDismiss,
+                    shape = CircleShape,
                     modifier = Modifier
                         .fillMaxWidth()
                         .testTag("eq_done_button")

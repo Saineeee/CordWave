@@ -1,10 +1,10 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Bedtime
-import androidx.compose.material.icons.filled.Timer
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -26,8 +26,8 @@ fun SleepTimerDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 6.dp,
             modifier = Modifier
                 .fillMaxWidth()
@@ -48,7 +48,8 @@ fun SleepTimerDialog(
 
                 Text(
                     text = "Sleep Timer",
-                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
 
                 Spacer(modifier = Modifier.height(8.dp))
@@ -69,8 +70,10 @@ fun SleepTimerDialog(
                             onCancelTimer()
                             onDismiss()
                         },
+                        shape = CircleShape,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError
                         ),
                         modifier = Modifier.fillMaxWidth()
                     ) {
@@ -95,7 +98,8 @@ fun SleepTimerDialog(
                                 onClick = {
                                     onSetTimer(mins)
                                     onDismiss()
-                                }
+                                },
+                                shape = CircleShape
                             ) {
                                 Text("$mins mins")
                             }
@@ -107,6 +111,7 @@ fun SleepTimerDialog(
 
                 TextButton(
                     onClick = onDismiss,
+                    shape = CircleShape,
                     modifier = Modifier.align(Alignment.End)
                 ) {
                     Text("Close")
@@ -115,3 +120,4 @@ fun SleepTimerDialog(
         }
     }
 }
+

@@ -32,22 +32,22 @@ fun ArtistCard(
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .testTag("artist_card_${artist.id}"),
-        shape = RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         )
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(12.dp),
+                .padding(14.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             Box(
                 modifier = Modifier
-                    .size(90.dp)
+                    .size(96.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                 contentAlignment = Alignment.Center
             ) {
                 if (!artist.artworkUri.isNullOrEmpty()) {
@@ -62,7 +62,7 @@ fun ArtistCard(
                         imageVector = Icons.Default.Person,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(44.dp)
+                        modifier = Modifier.size(46.dp)
                     )
                 }
             }
@@ -72,10 +72,13 @@ fun ArtistCard(
             Text(
                 text = artist.name,
                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurface,
                 textAlign = TextAlign.Center,
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+
+            Spacer(modifier = Modifier.height(2.dp))
 
             Text(
                 text = "${artist.songCount} tracks • ${artist.albumCount} albums",
@@ -88,3 +91,4 @@ fun ArtistCard(
         }
     }
 }
+

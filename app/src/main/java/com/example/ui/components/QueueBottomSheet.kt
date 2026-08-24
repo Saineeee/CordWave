@@ -39,7 +39,7 @@ fun QueueBottomSheet(
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true),
-        containerColor = MaterialTheme.colorScheme.surface,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
         modifier = Modifier.testTag("queue_bottom_sheet")
     ) {
         Column(
@@ -57,7 +57,8 @@ fun QueueBottomSheet(
                 Column {
                     Text(
                         text = "Playback Queue",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                     Text(
                         text = "${queue.size} tracks • Now Playing #${if (queue.isNotEmpty()) currentIndex + 1 else 0}",
@@ -66,26 +67,36 @@ fun QueueBottomSheet(
                     )
                 }
 
-                Row {
-                    IconButton(onClick = onSaveAsPlaylist) {
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    FilledTonalIconButton(
+                        onClick = onSaveAsPlaylist,
+                        modifier = Modifier.size(38.dp)
+                    ) {
                         Icon(
                             imageVector = Icons.Default.PlaylistAdd,
                             contentDescription = "Save Queue as Playlist",
-                            tint = MaterialTheme.colorScheme.primary
+                            modifier = Modifier.size(18.dp)
                         )
                     }
-                    IconButton(onClick = onClearQueue) {
+                    FilledTonalIconButton(
+                        onClick = onClearQueue,
+                        modifier = Modifier.size(38.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.errorContainer,
+                            contentColor = MaterialTheme.colorScheme.onErrorContainer
+                        )
+                    ) {
                         Icon(
                             imageVector = Icons.Default.DeleteSweep,
                             contentDescription = "Clear Queue",
-                            tint = MaterialTheme.colorScheme.error
+                            modifier = Modifier.size(18.dp)
                         )
                     }
                 }
             }
 
             Spacer(modifier = Modifier.height(12.dp))
-            Divider(color = MaterialTheme.colorScheme.outlineVariant)
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
             if (queue.isEmpty()) {
                 Box(
@@ -113,11 +124,12 @@ fun QueueBottomSheet(
                         Surface(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(vertical = 4.dp)
+                                .padding(vertical = 3.dp)
+                                .clip(RoundedCornerShape(16.dp))
                                 .clickable { onSongClick(index) }
                                 .testTag("queue_item_$index"),
-                            color = if (isCurrent) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f) else Color.Transparent,
-                            shape = RoundedCornerShape(12.dp)
+                            color = if (isCurrent) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.4f) else MaterialTheme.colorScheme.surfaceContainerHigh.copy(alpha = 0.5f),
+                            shape = RoundedCornerShape(16.dp)
                         ) {
                             Row(
                                 modifier = Modifier
@@ -135,7 +147,7 @@ fun QueueBottomSheet(
                                 Box(
                                     modifier = Modifier
                                         .size(42.dp)
-                                        .clip(RoundedCornerShape(8.dp))
+                                        .clip(RoundedCornerShape(10.dp))
                                         .background(MaterialTheme.colorScheme.surfaceVariant),
                                     contentAlignment = Alignment.Center
                                 ) {

@@ -18,7 +18,6 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
@@ -31,6 +30,7 @@ import coil.compose.AsyncImage
 import com.example.model.MediaSource
 import com.example.model.Song
 import com.example.ui.components.SongListItem
+import java.util.Calendar
 
 @Composable
 fun HomeScreen(
@@ -54,7 +54,17 @@ fun HomeScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedMood by remember { mutableStateOf("All") }
-    val moods = listOf("All", "Workout & Energy", "Chill & Lo-Fi", "Deep Focus", "Party & Night Drive")
+    val moods = listOf("All", "Workout & Energy", "Chill & Lo-Fi", "Deep Focus", "Party & Drive")
+
+    val greeting = remember {
+        val hour = Calendar.getInstance().get(Calendar.HOUR_OF_DAY)
+        when (hour) {
+            in 5..11 -> "Good morning"
+            in 12..16 -> "Good afternoon"
+            in 17..22 -> "Good evening"
+            else -> "Good night"
+        }
+    }
 
     val displayedSongs = if (selectedMood == "All") {
         trendingSongs
@@ -68,95 +78,103 @@ fun HomeScreen(
             .testTag("home_screen"),
         contentPadding = PaddingValues(bottom = 120.dp)
     ) {
-        // App Bar & Brand Header
+        // App Bar & Brand Header (Pixel Style)
         item {
-            Row(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
+                    .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(
-                        modifier = Modifier
-                            .size(36.dp)
-                            .clip(CircleShape)
-                            .background(
-                                Brush.linearGradient(
-                                    listOf(
-                                        MaterialTheme.colorScheme.primary,
-                                        MaterialTheme.colorScheme.tertiary
-                                    )
-                                )
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column {
+                        Text(
+                            text = greeting,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = "OuterTune",
+                            style = MaterialTheme.typography.headlineMedium.copy(
+                                fontWeight = FontWeight.ExtraBold,
+                                letterSpacing = (-0.5).sp
                             ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.GraphicEq,
-                            contentDescription = null,
-                            tint = Color.White,
-                            modifier = Modifier.size(22.dp)
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
-                    Spacer(modifier = Modifier.width(10.dp))
-                    Text(
-                        text = "OuterTune",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.5).sp
-                        )
-                    )
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        FilledTonalIconButton(
+                            onClick = onOpenStats,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .testTag("home_stats_button"),
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Insights,
+                                contentDescription = "Stats",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+
+                        FilledTonalIconButton(
+                            onClick = onOpenSettings,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .testTag("home_settings_button"),
+                            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                            )
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Settings,
+                                contentDescription = "Settings",
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
                 }
 
-                Row {
-                    IconButton(
-                        onClick = onOpenStats,
-                        modifier = Modifier.testTag("home_stats_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Insights,
-                            contentDescription = "Stats",
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                    }
-                    IconButton(
-                        onClick = onOpenSettings,
-                        modifier = Modifier.testTag("home_settings_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Settings,
-                            contentDescription = "Settings",
-                            tint = MaterialTheme.colorScheme.onSurface
+                Spacer(modifier = Modifier.height(16.dp))
+
+                // Pixel Mood Filter Chips
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    moods.forEach { mood ->
+                        FilterChip(
+                            selected = selectedMood == mood,
+                            onClick = { selectedMood = mood },
+                            label = { Text(mood, style = MaterialTheme.typography.labelMedium) },
+                            shape = CircleShape,
+                            colors = FilterChipDefaults.filterChipColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer
+                            ),
+                            border = null
                         )
                     }
                 }
             }
         }
 
-        // Mood Filter Chips
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 4.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                moods.forEach { mood ->
-                    FilterChip(
-                        selected = selectedMood == mood,
-                        onClick = { selectedMood = mood },
-                        label = { Text(mood, fontSize = 13.sp) },
-                        leadingIcon = if (selectedMood == mood) {
-                            { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(16.dp)) }
-                        } else null
-                    )
-                }
-            }
-        }
-
-        // Quick Picks Carousel
+        // Quick Picks Carousel (YouTube Music style on Pixel)
         if (quickPicks.isNotEmpty()) {
             item {
                 Spacer(modifier = Modifier.height(16.dp))
@@ -169,29 +187,34 @@ fun HomeScreen(
                 ) {
                     Text(
                         text = "Quick Picks",
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
                     )
-                    TextButton(onClick = { onPlayAll(quickPicks, true) }) {
+                    FilledTonalButton(
+                        onClick = { onPlayAll(quickPicks, true) },
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                        shape = CircleShape
+                    ) {
                         Icon(Icons.Default.Shuffle, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Shuffle All")
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Shuffle All", style = MaterialTheme.typography.labelMedium)
                     }
                 }
 
                 LazyRow(
                     contentPadding = PaddingValues(horizontal = 20.dp),
                     horizontalArrangement = Arrangement.spacedBy(14.dp),
-                    modifier = Modifier.padding(top = 8.dp)
+                    modifier = Modifier.padding(top = 10.dp)
                 ) {
                     items(quickPicks) { song ->
                         Card(
                             modifier = Modifier
-                                .width(150.dp)
+                                .width(160.dp)
                                 .clickable { onSongClick(song, quickPicks) }
                                 .testTag("quick_pick_${song.id}"),
-                            shape = RoundedCornerShape(16.dp),
+                            shape = RoundedCornerShape(20.dp),
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.6f)
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                             )
                         ) {
                             Column(modifier = Modifier.padding(10.dp)) {
@@ -199,8 +222,8 @@ fun HomeScreen(
                                     modifier = Modifier
                                         .fillMaxWidth()
                                         .aspectRatio(1f)
-                                        .clip(RoundedCornerShape(12.dp))
-                                        .background(MaterialTheme.colorScheme.surface),
+                                        .clip(RoundedCornerShape(16.dp))
+                                        .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (!song.albumArtUri.isNullOrEmpty()) {
@@ -225,7 +248,7 @@ fun HomeScreen(
                                         modifier = Modifier
                                             .align(Alignment.BottomEnd)
                                             .padding(6.dp)
-                                            .size(32.dp),
+                                            .size(36.dp),
                                         colors = IconButtonDefaults.filledIconButtonColors(
                                             containerColor = MaterialTheme.colorScheme.primary,
                                             contentColor = MaterialTheme.colorScheme.onPrimary
@@ -233,21 +256,22 @@ fun HomeScreen(
                                     ) {
                                         Icon(
                                             imageVector = Icons.Default.PlayArrow,
-                                            contentDescription = null,
+                                            contentDescription = "Play",
                                             modifier = Modifier.size(18.dp)
                                         )
                                     }
                                 }
 
-                                Spacer(modifier = Modifier.height(8.dp))
+                                Spacer(modifier = Modifier.height(10.dp))
 
                                 Text(
                                     text = song.title,
                                     style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface,
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
-
+                                Spacer(modifier = Modifier.height(2.dp))
                                 Text(
                                     text = song.artist,
                                     style = MaterialTheme.typography.bodySmall,
@@ -264,49 +288,62 @@ fun HomeScreen(
 
         // Local Storage Banner
         item {
-            Spacer(modifier = Modifier.height(20.dp))
+            Spacer(modifier = Modifier.height(24.dp))
             Card(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = 20.dp),
-                shape = RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(22.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.4f)
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
                 )
             ) {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(16.dp),
+                        .padding(18.dp),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     Column(modifier = Modifier.weight(1f)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Icon(
-                                imageVector = Icons.Default.FolderSpecial,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(20.dp)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .background(MaterialTheme.colorScheme.primaryContainer),
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.FolderSpecial,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    modifier = Modifier.size(18.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "Local Music Library",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                text = "Local Library",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
+                        Spacer(modifier = Modifier.height(6.dp))
                         Text(
-                            text = "${localSongs.size} tracks scanned from device",
+                            text = "${localSongs.size} songs scanned on device storage",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
 
-                    FilledTonalButton(onClick = onRescanLocal) {
+                    FilledTonalButton(
+                        onClick = onRescanLocal,
+                        shape = CircleShape,
+                        contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
+                    ) {
                         Icon(Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text("Rescan")
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Rescan", style = MaterialTheme.typography.labelMedium)
                     }
                 }
             }
@@ -314,7 +351,7 @@ fun HomeScreen(
 
         // Trending & Categorized Tracks Section
         item {
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(28.dp))
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -324,15 +361,20 @@ fun HomeScreen(
             ) {
                 Text(
                     text = if (selectedMood == "All") "Trending & Recommended" else selectedMood,
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
                 )
-                TextButton(onClick = { onPlayAll(displayedSongs, false) }) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text("Play All")
+                FilledTonalButton(
+                    onClick = { onPlayAll(displayedSongs, false) },
+                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp),
+                    shape = CircleShape
+                ) {
+                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Spacer(modifier = Modifier.width(6.dp))
+                    Text("Play All", style = MaterialTheme.typography.labelMedium)
                 }
             }
-            Spacer(modifier = Modifier.height(6.dp))
+            Spacer(modifier = Modifier.height(8.dp))
         }
 
         items(displayedSongs) { song ->
@@ -353,16 +395,17 @@ fun HomeScreen(
         // Recently Played
         if (recentHistory.isNotEmpty()) {
             item {
-                Spacer(modifier = Modifier.height(24.dp))
+                Spacer(modifier = Modifier.height(28.dp))
                 Text(
                     text = "Recently Played",
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.padding(horizontal = 20.dp)
                 )
                 Spacer(modifier = Modifier.height(8.dp))
             }
 
-            items(recentHistory.take(5)) { song ->
+            items(recentHistory.take(6)) { song ->
                 SongListItem(
                     song = song,
                     isPlaying = isPlaying,
@@ -379,3 +422,4 @@ fun HomeScreen(
         }
     }
 }
+

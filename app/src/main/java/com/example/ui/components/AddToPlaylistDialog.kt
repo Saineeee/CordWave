@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
@@ -13,6 +14,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -35,8 +37,8 @@ fun AddToPlaylistDialog(
 
     Dialog(onDismissRequest = onDismiss) {
         Surface(
-            shape = RoundedCornerShape(24.dp),
-            color = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(28.dp),
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
             tonalElevation = 6.dp,
             modifier = Modifier
                 .fillMaxWidth()
@@ -58,7 +60,8 @@ fun AddToPlaylistDialog(
                     Column {
                         Text(
                             text = "Add to Playlist",
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                         Text(
                             text = song.title,
@@ -77,6 +80,7 @@ fun AddToPlaylistDialog(
                         onValueChange = { newPlaylistName = it },
                         label = { Text("Playlist Name") },
                         singleLine = true,
+                        shape = RoundedCornerShape(16.dp),
                         modifier = Modifier.fillMaxWidth()
                     )
                     Spacer(modifier = Modifier.height(12.dp))
@@ -84,7 +88,10 @@ fun AddToPlaylistDialog(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.End
                     ) {
-                        TextButton(onClick = { isCreatingNew = false }) {
+                        TextButton(
+                            onClick = { isCreatingNew = false },
+                            shape = CircleShape
+                        ) {
                             Text("Cancel")
                         }
                         Spacer(modifier = Modifier.width(8.dp))
@@ -95,6 +102,7 @@ fun AddToPlaylistDialog(
                                     isCreatingNew = false
                                 }
                             },
+                            shape = CircleShape,
                             enabled = newPlaylistName.isNotBlank()
                         ) {
                             Text("Create")
@@ -103,9 +111,10 @@ fun AddToPlaylistDialog(
                 } else {
                     Button(
                         onClick = { isCreatingNew = true },
+                        shape = CircleShape,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Icon(Icons.Default.Add, contentDescription = null)
+                        Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.size(20.dp))
                         Spacer(modifier = Modifier.width(6.dp))
                         Text("New Playlist")
                     }
@@ -113,7 +122,7 @@ fun AddToPlaylistDialog(
 
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                 LazyColumn(
                     modifier = Modifier
@@ -140,12 +149,21 @@ fun AddToPlaylistDialog(
                             Surface(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { onAddToPlaylist(playlist.id) }
-                                    .padding(vertical = 8.dp, horizontal = 4.dp),
-                                shape = RoundedCornerShape(8.dp),
-                                color = MaterialTheme.colorScheme.surface
+                                    .padding(vertical = 4.dp)
+                                    .clip(RoundedCornerShape(16.dp))
+                                    .clickable {
+                                        onAddToPlaylist(playlist.id)
+                                        onDismiss()
+                                    },
+                                shape = RoundedCornerShape(16.dp),
+                                color = MaterialTheme.colorScheme.surfaceContainerLow
                             ) {
-                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(12.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
                                     Icon(
                                         imageVector = Icons.Default.QueueMusic,
                                         contentDescription = null,
@@ -156,7 +174,8 @@ fun AddToPlaylistDialog(
                                     Column {
                                         Text(
                                             text = playlist.title,
-                                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium)
+                                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Medium),
+                                            color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
                                             text = "${playlist.songCount} tracks",
@@ -170,8 +189,11 @@ fun AddToPlaylistDialog(
                     }
                 }
 
+                Spacer(modifier = Modifier.height(8.dp))
+
                 TextButton(
                     onClick = onDismiss,
+                    shape = CircleShape,
                     modifier = Modifier.align(Alignment.End)
                 ) {
                     Text("Close")
@@ -180,3 +202,4 @@ fun AddToPlaylistDialog(
         }
     }
 }
+

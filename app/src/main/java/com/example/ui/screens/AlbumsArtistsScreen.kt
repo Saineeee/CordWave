@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.Person
@@ -14,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.example.model.Album
 import com.example.model.Artist
 import com.example.model.Song
@@ -74,42 +76,55 @@ fun AlbumsArtistsScreen(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 20.dp, vertical = 16.dp)
+                .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp)
         ) {
             Text(
                 text = "Artists & Albums",
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold)
+                style = MaterialTheme.typography.headlineMedium.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = (-0.5).sp
+                ),
+                color = MaterialTheme.colorScheme.onSurface
             )
             Spacer(modifier = Modifier.height(12.dp))
 
-            TabRow(
-                selectedTabIndex = currentSubTab.ordinal,
-                containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            // Pixel-style Pill Segmented Filter
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                Tab(
+                FilterChip(
                     selected = currentSubTab == AlbumArtistTab.ALBUMS,
                     onClick = { currentSubTab = AlbumArtistTab.ALBUMS },
-                    text = { Text("Albums (${albums.size})") },
-                    icon = { Icon(Icons.Default.Album, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    shape = CircleShape,
+                    leadingIcon = { Icon(Icons.Default.Album, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                    label = { Text("Albums (${albums.size})", style = MaterialTheme.typography.labelMedium) }
                 )
-                Tab(
+                FilterChip(
                     selected = currentSubTab == AlbumArtistTab.ARTISTS,
                     onClick = { currentSubTab = AlbumArtistTab.ARTISTS },
-                    text = { Text("Artists (${artists.size})") },
-                    icon = { Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(18.dp)) }
+                    shape = CircleShape,
+                    leadingIcon = { Icon(Icons.Default.Person, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                    label = { Text("Artists (${artists.size})", style = MaterialTheme.typography.labelMedium) }
                 )
             }
         }
+
+        Spacer(modifier = Modifier.height(8.dp))
 
         if (currentSubTab == AlbumArtistTab.ALBUMS) {
             if (albums.isEmpty()) {
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(32.dp),
+                        .padding(48.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("No albums available", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "No albums available",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             } else {
                 LazyVerticalGrid(
@@ -133,10 +148,14 @@ fun AlbumsArtistsScreen(
                 Box(
                     modifier = Modifier
                         .fillMaxSize()
-                        .padding(32.dp),
+                        .padding(48.dp),
                     contentAlignment = Alignment.Center
                 ) {
-                    Text("No artists available", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "No artists available",
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             } else {
                 LazyVerticalGrid(
@@ -157,3 +176,4 @@ fun AlbumsArtistsScreen(
         }
     }
 }
+

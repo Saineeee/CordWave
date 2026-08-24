@@ -3,6 +3,7 @@ package com.example.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -41,10 +42,11 @@ fun SongListItem(
     Surface(
         modifier = modifier
             .fillMaxWidth()
+            .padding(vertical = 2.dp)
             .clickable(onClick = onClick)
             .testTag("song_item_${song.id}"),
-        color = if (isCurrentSong) MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.25f) else Color.Transparent,
-        shape = RoundedCornerShape(12.dp)
+        color = if (isCurrentSong) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent,
+        shape = RoundedCornerShape(16.dp)
     ) {
         Row(
             modifier = Modifier
@@ -52,12 +54,12 @@ fun SongListItem(
                 .padding(horizontal = 12.dp, vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Artwork / Thumbnail
+            // Artwork Squircle
             Box(
                 modifier = Modifier
                     .size(52.dp)
-                    .clip(RoundedCornerShape(8.dp))
-                    .background(MaterialTheme.colorScheme.surfaceVariant),
+                    .clip(RoundedCornerShape(12.dp))
+                    .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                 contentAlignment = Alignment.Center
             ) {
                 if (!song.albumArtUri.isNullOrEmpty()) {
@@ -80,7 +82,7 @@ fun SongListItem(
                     Box(
                         modifier = Modifier
                             .fillMaxSize()
-                            .background(Color.Black.copy(alpha = 0.45f)),
+                            .background(Color.Black.copy(alpha = 0.5f)),
                         contentAlignment = Alignment.Center
                     ) {
                         Icon(
@@ -93,7 +95,7 @@ fun SongListItem(
                 }
             }
 
-            Spacer(modifier = Modifier.width(12.dp))
+            Spacer(modifier = Modifier.width(14.dp))
 
             // Song Info
             Column(
@@ -102,13 +104,13 @@ fun SongListItem(
                 Text(
                     text = song.title,
                     style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.Medium,
+                        fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.SemiBold,
                         color = if (isCurrentSong) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
                     ),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(2.dp))
+                Spacer(modifier = Modifier.height(3.dp))
                 Row(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -116,17 +118,19 @@ fun SongListItem(
                     Surface(
                         color = when (song.source) {
                             MediaSource.LOCAL -> MaterialTheme.colorScheme.secondaryContainer
-                            MediaSource.YOUTUBE -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.2f)
+                            MediaSource.YOUTUBE -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
                         },
-                        shape = RoundedCornerShape(4.dp),
+                        shape = RoundedCornerShape(6.dp),
                         modifier = Modifier.padding(end = 6.dp)
                     ) {
                         Text(
-                            text = if (song.source == MediaSource.LOCAL) "LOCAL" else "YT MUSIC",
-                            fontSize = 9.sp,
-                            fontWeight = FontWeight.SemiBold,
+                            text = if (song.source == MediaSource.LOCAL) "LOCAL" else "ONLINE",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 9.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
                             color = if (song.source == MediaSource.LOCAL) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 1.dp)
+                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
                         )
                     }
 
@@ -143,12 +147,14 @@ fun SongListItem(
             // Like action
             IconButton(
                 onClick = onLikeToggle,
-                modifier = Modifier.size(44.dp).testTag("like_button_${song.id}")
+                modifier = Modifier
+                    .size(44.dp)
+                    .testTag("like_button_${song.id}")
             ) {
                 Icon(
                     imageVector = if (song.isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                     contentDescription = if (song.isLiked) "Unlike" else "Like",
-                    tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
                     modifier = Modifier.size(20.dp)
                 )
             }
@@ -157,7 +163,9 @@ fun SongListItem(
             Box {
                 IconButton(
                     onClick = { showMenu = true },
-                    modifier = Modifier.size(44.dp).testTag("more_button_${song.id}")
+                    modifier = Modifier
+                        .size(44.dp)
+                        .testTag("more_button_${song.id}")
                 ) {
                     Icon(
                         imageVector = Icons.Default.MoreVert,
@@ -169,35 +177,37 @@ fun SongListItem(
 
                 DropdownMenu(
                     expanded = showMenu,
-                    onDismissRequest = { showMenu = false }
+                    onDismissRequest = { showMenu = false },
+                    shape = RoundedCornerShape(18.dp),
+                    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
                 ) {
                     DropdownMenuItem(
-                        text = { Text("Play Next") },
-                        leadingIcon = { Icon(Icons.Default.QueuePlayNext, contentDescription = null) },
+                        text = { Text("Play Next", style = MaterialTheme.typography.bodyMedium) },
+                        leadingIcon = { Icon(Icons.Default.QueuePlayNext, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                         onClick = {
                             showMenu = false
                             onPlayNext()
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Add to Queue") },
-                        leadingIcon = { Icon(Icons.Default.AddToQueue, contentDescription = null) },
+                        text = { Text("Add to Queue", style = MaterialTheme.typography.bodyMedium) },
+                        leadingIcon = { Icon(Icons.Default.AddToQueue, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                         onClick = {
                             showMenu = false
                             onAddToQueue()
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Add to Playlist") },
-                        leadingIcon = { Icon(Icons.Default.PlaylistAdd, contentDescription = null) },
+                        text = { Text("Add to Playlist", style = MaterialTheme.typography.bodyMedium) },
+                        leadingIcon = { Icon(Icons.Default.PlaylistAdd, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                         onClick = {
                             showMenu = false
                             onAddToPlaylist()
                         }
                     )
                     DropdownMenuItem(
-                        text = { Text("Download Offline") },
-                        leadingIcon = { Icon(Icons.Default.Download, contentDescription = null) },
+                        text = { Text("Download Offline", style = MaterialTheme.typography.bodyMedium) },
+                        leadingIcon = { Icon(Icons.Default.Download, contentDescription = null, tint = MaterialTheme.colorScheme.primary) },
                         onClick = {
                             showMenu = false
                             onDownload()
@@ -216,3 +226,4 @@ fun formatDuration(durationMs: Long): String {
     val seconds = totalSeconds % 60
     return String.format("%d:%02d", minutes, seconds)
 }
+

@@ -79,14 +79,15 @@ fun NowPlayingScreen(
             .navigationBarsPadding()
             .testTag("now_playing_screen")
     ) {
-        // Gradient atmospheric backdrop
+        // Pixel Atmospheric Ambient Tint
         Box(
             modifier = Modifier
                 .fillMaxSize()
                 .background(
                     Brush.verticalGradient(
                         colors = listOf(
-                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f),
+                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.45f),
+                            MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.2f),
                             MaterialTheme.colorScheme.background
                         )
                     )
@@ -96,62 +97,90 @@ fun NowPlayingScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 20.dp, vertical = 8.dp),
+                .padding(horizontal = 24.dp, vertical = 8.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
             // Top Bar
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(48.dp),
+                    .height(52.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                IconButton(
+                FilledTonalIconButton(
                     onClick = onCollapse,
-                    modifier = Modifier.testTag("now_playing_collapse")
+                    modifier = Modifier
+                        .size(42.dp)
+                        .testTag("now_playing_collapse"),
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    )
                 ) {
                     Icon(
                         imageVector = Icons.Default.KeyboardArrowDown,
                         contentDescription = "Collapse",
-                        modifier = Modifier.size(32.dp),
+                        modifier = Modifier.size(28.dp),
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = "PLAYING FROM",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = if (song.source == MediaSource.LOCAL) "Device Storage" else "YouTube Music",
-                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Surface(
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    shape = CircleShape
+                ) {
+                    Row(
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .size(8.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.primary)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = if (song.source == MediaSource.LOCAL) "Device Storage" else "YouTube Music",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    }
                 }
 
-                Row {
-                    IconButton(onClick = onOpenEqualizer) {
+                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FilledTonalIconButton(
+                        onClick = onOpenEqualizer,
+                        modifier = Modifier.size(42.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                        )
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Equalizer,
                             contentDescription = "Equalizer",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
-                    IconButton(onClick = onOpenSleepTimer) {
+                    FilledTonalIconButton(
+                        onClick = onOpenSleepTimer,
+                        modifier = Modifier.size(42.dp),
+                        colors = IconButtonDefaults.filledTonalIconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                        )
+                    ) {
                         Icon(
                             imageVector = Icons.Default.Bedtime,
                             contentDescription = "Sleep Timer",
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Center Content: Album Artwork or Synced Lyrics
             Box(
@@ -177,25 +206,25 @@ fun NowPlayingScreen(
                             modifier = Modifier.fillMaxSize()
                         )
                     } else {
-                        // Large Album Artwork Card
+                        // Large Pixel Squircle Artwork Card
                         Column(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.Center,
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            Card(
+                            Surface(
                                 modifier = Modifier
-                                    .fillMaxWidth(0.85f)
+                                    .fillMaxWidth(0.92f)
                                     .aspectRatio(1f)
-                                    .shadow(24.dp, RoundedCornerShape(24.dp))
+                                    .shadow(28.dp, RoundedCornerShape(28.dp))
+                                    .clip(RoundedCornerShape(28.dp))
                                     .clickable { showLyricsView = true }
                                     .testTag("now_playing_art"),
-                                shape = RoundedCornerShape(24.dp)
+                                color = MaterialTheme.colorScheme.surfaceContainerHighest,
+                                shape = RoundedCornerShape(28.dp)
                             ) {
                                 Box(
-                                    modifier = Modifier
-                                        .fillMaxSize()
-                                        .background(MaterialTheme.colorScheme.surfaceVariant),
+                                    modifier = Modifier.fillMaxSize(),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     if (!song.albumArtUri.isNullOrEmpty()) {
@@ -220,7 +249,7 @@ fun NowPlayingScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
             // Song Info & Favorite Row
             Row(
@@ -231,14 +260,14 @@ fun NowPlayingScreen(
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = song.title,
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            fontSize = 22.sp
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.ExtraBold
                         ),
+                        color = MaterialTheme.colorScheme.onSurface,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(2.dp))
+                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "${song.artist} • ${song.album}",
                         style = MaterialTheme.typography.bodyMedium,
@@ -246,34 +275,45 @@ fun NowPlayingScreen(
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Spacer(modifier = Modifier.height(4.dp))
-                    // Audio Spec tag
-                    Text(
-                        text = "${song.bitrate ?: "320 kbps"} • ${song.sampleRate ?: "44.1 kHz"} • Lossless",
-                        fontSize = 11.sp,
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f),
-                        fontWeight = FontWeight.SemiBold
-                    )
+                    Spacer(modifier = Modifier.height(6.dp))
+                    // Pixel Audio Spec pill
+                    Surface(
+                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                        shape = RoundedCornerShape(6.dp)
+                    ) {
+                        Text(
+                            text = "${song.bitrate ?: "320 kbps"} • ${song.sampleRate ?: "44.1 kHz"} • Lossless Hi-Fi",
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontSize = 10.sp,
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 3.dp)
+                        )
+                    }
                 }
 
-                IconButton(
+                FilledTonalIconButton(
                     onClick = onToggleLike,
                     modifier = Modifier
-                        .size(48.dp)
-                        .testTag("now_playing_like_button")
+                        .size(52.dp)
+                        .testTag("now_playing_like_button"),
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = if (song.isLiked) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHigh
+                    )
                 ) {
                     Icon(
                         imageVector = if (song.isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                         contentDescription = if (song.isLiked) "Unlike" else "Like",
                         tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(28.dp)
+                        modifier = Modifier.size(26.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
-            // Seek Bar Slider
+            // Pixel Seek Bar Slider
             Column(modifier = Modifier.fillMaxWidth()) {
                 Slider(
                     value = progress.coerceIn(0f, 1f),
@@ -287,65 +327,73 @@ fun NowPlayingScreen(
                     },
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(24.dp)
+                        .height(28.dp)
                         .testTag("now_playing_slider"),
                     colors = SliderDefaults.colors(
                         thumbColor = MaterialTheme.colorScheme.primary,
                         activeTrackColor = MaterialTheme.colorScheme.primary,
-                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceVariant
+                        inactiveTrackColor = MaterialTheme.colorScheme.surfaceContainerHighest
                     )
                 )
 
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 2.dp),
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     Text(
                         text = formatDuration(displayedPosition),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     Text(
                         text = formatDuration(durationMs),
-                        style = MaterialTheme.typography.labelSmall,
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             // Main Playback Controls (Shuffle, Prev, Play/Pause, Next, Repeat)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 8.dp),
+                    .padding(horizontal = 4.dp),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 // Shuffle
                 IconButton(
                     onClick = onToggleShuffle,
-                    modifier = Modifier.testTag("now_playing_shuffle")
+                    modifier = Modifier
+                        .size(44.dp)
+                        .testTag("now_playing_shuffle")
                 ) {
                     Icon(
                         imageVector = Icons.Default.Shuffle,
                         contentDescription = "Shuffle",
-                        tint = if (isShuffle) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        tint = if (isShuffle) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(24.dp)
                     )
                 }
 
                 // Previous
-                IconButton(
+                FilledTonalIconButton(
                     onClick = onSkipPrevious,
                     modifier = Modifier
-                        .size(48.dp)
-                        .testTag("now_playing_prev")
+                        .size(52.dp)
+                        .testTag("now_playing_prev"),
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    )
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipPrevious,
                         contentDescription = "Previous",
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.size(30.dp),
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -354,8 +402,8 @@ fun NowPlayingScreen(
                 FilledIconButton(
                     onClick = onPlayPause,
                     modifier = Modifier
-                        .size(72.dp)
-                        .shadow(12.dp, CircleShape)
+                        .size(76.dp)
+                        .shadow(16.dp, CircleShape)
                         .testTag("now_playing_play_pause"),
                     colors = IconButtonDefaults.filledIconButtonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -365,21 +413,24 @@ fun NowPlayingScreen(
                     Icon(
                         imageVector = if (isPlaying) Icons.Default.Pause else Icons.Default.PlayArrow,
                         contentDescription = if (isPlaying) "Pause" else "Play",
-                        modifier = Modifier.size(38.dp)
+                        modifier = Modifier.size(40.dp)
                     )
                 }
 
                 // Next
-                IconButton(
+                FilledTonalIconButton(
                     onClick = onSkipNext,
                     modifier = Modifier
-                        .size(48.dp)
-                        .testTag("now_playing_next")
+                        .size(52.dp)
+                        .testTag("now_playing_next"),
+                    colors = IconButtonDefaults.filledTonalIconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
+                    )
                 ) {
                     Icon(
                         imageVector = Icons.Default.SkipNext,
                         contentDescription = "Next",
-                        modifier = Modifier.size(36.dp),
+                        modifier = Modifier.size(30.dp),
                         tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
@@ -387,7 +438,9 @@ fun NowPlayingScreen(
                 // Repeat Mode
                 IconButton(
                     onClick = onToggleRepeat,
-                    modifier = Modifier.testTag("now_playing_repeat")
+                    modifier = Modifier
+                        .size(44.dp)
+                        .testTag("now_playing_repeat")
                 ) {
                     Icon(
                         imageVector = when (repeatMode) {
@@ -396,51 +449,80 @@ fun NowPlayingScreen(
                             RepeatMode.ONE -> Icons.Default.RepeatOne
                         },
                         contentDescription = "Repeat",
-                        tint = if (repeatMode != RepeatMode.OFF) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        tint = if (repeatMode != RepeatMode.OFF) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier.size(24.dp)
                     )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(20.dp))
 
-            // Action Toolbar (Lyrics toggle, Queue, Add to Playlist, Download)
+            // Action Toolbar (Pixel Pill Chips: Lyrics toggle, Queue, Add to Playlist, Download)
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(bottom = 8.dp),
-                horizontalArrangement = Arrangement.SpaceEvenly,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 FilterChip(
                     selected = showLyricsView,
                     onClick = { showLyricsView = !showLyricsView },
                     leadingIcon = { Icon(Icons.Default.Mic, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    label = { Text("Lyrics", fontSize = 12.sp) },
-                    modifier = Modifier.testTag("toggle_lyrics_chip")
+                    label = { Text("Lyrics", style = MaterialTheme.typography.labelSmall) },
+                    shape = CircleShape,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("toggle_lyrics_chip"),
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                        selectedContainerColor = MaterialTheme.colorScheme.primaryContainer
+                    ),
+                    border = null
                 )
 
                 FilterChip(
                     selected = false,
                     onClick = onOpenQueue,
                     leadingIcon = { Icon(Icons.Default.QueueMusic, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    label = { Text("Queue", fontSize = 12.sp) },
-                    modifier = Modifier.testTag("open_queue_chip")
+                    label = { Text("Queue", style = MaterialTheme.typography.labelSmall) },
+                    shape = CircleShape,
+                    modifier = Modifier
+                        .weight(1f)
+                        .testTag("open_queue_chip"),
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    border = null
                 )
 
                 FilterChip(
                     selected = false,
                     onClick = onAddToPlaylist,
                     leadingIcon = { Icon(Icons.Default.PlaylistAdd, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    label = { Text("Playlist", fontSize = 12.sp) }
+                    label = { Text("Playlist", style = MaterialTheme.typography.labelSmall) },
+                    shape = CircleShape,
+                    modifier = Modifier.weight(1f),
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    border = null
                 )
 
                 FilterChip(
                     selected = false,
                     onClick = onDownload,
                     leadingIcon = { Icon(Icons.Default.Download, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    label = { Text("Offline", fontSize = 12.sp) }
+                    label = { Text("Offline", style = MaterialTheme.typography.labelSmall) },
+                    shape = CircleShape,
+                    modifier = Modifier.weight(1f),
+                    colors = FilterChipDefaults.filterChipColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                    ),
+                    border = null
                 )
             }
         }
     }
 }
+

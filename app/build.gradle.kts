@@ -32,6 +32,7 @@ android {
       keyPassword = System.getenv("KEY_PASSWORD")
       enableV1Signing = true
       enableV2Signing = true
+      enableV3Signing = true
     }
     create("debugConfig") {
       storeFile = file("${rootDir}/debug.keystore")
@@ -40,6 +41,7 @@ android {
       keyPassword = "android"
       enableV1Signing = true
       enableV2Signing = true
+      enableV3Signing = true
     }
   }
 
