@@ -60,4 +60,17 @@ class MusicPlayerUnitTest {
         assertEquals(1.0f, config.tempo, 0.001f)
         assertEquals(1.0f, config.pitch, 0.001f)
     }
+
+    @Test
+    fun testSongLikeToggle() {
+        val song = Song(
+            id = "s_1",
+            title = "Test Song",
+            artist = "Artist",
+            isLiked = false
+        )
+        assertFalse(song.isLiked)
+        val liked = song.copy(isLiked = true)
+        assertTrue(liked.isLiked)
+    }
 }

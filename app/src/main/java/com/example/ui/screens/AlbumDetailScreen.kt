@@ -1,14 +1,15 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Album
-import androidx.compose.material.icons.filled.ArrowBack
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
 import androidx.compose.material3.*
@@ -42,28 +43,35 @@ fun AlbumDetailScreen(
     onDownload: (Song) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    LazyColumn(
-        modifier = modifier
-            .fillMaxSize()
-            .testTag("album_detail_screen"),
-        contentPadding = PaddingValues(bottom = 120.dp)
-    ) {
-        item {
-            // Top Bar
+    Scaffold(
+        topBar = {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(start = 16.dp, end = 20.dp, top = 16.dp, bottom = 8.dp),
+                    .windowInsetsPadding(WindowInsets.statusBars)
+                    .background(MaterialTheme.colorScheme.background)
+                    .padding(start = 16.dp, end = 20.dp, top = 12.dp, bottom = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                FilledTonalIconButton(
+                IconButton(
                     onClick = onBack,
-                    modifier = Modifier.size(42.dp),
-                    colors = IconButtonDefaults.filledTonalIconButtonColors(
-                        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                    )
+                    modifier = Modifier
+                        .size(48.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f), CircleShape)
+                        .border(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f),
+                            shape = CircleShape
+                        )
+                        .testTag("album_detail_back_button")
                 ) {
-                    Icon(Icons.Default.ArrowBack, contentDescription = "Back", modifier = Modifier.size(20.dp))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
+                        contentDescription = "Back",
+                        tint = MaterialTheme.colorScheme.onSurface,
+                        modifier = Modifier.size(22.dp)
+                    )
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
@@ -72,111 +80,125 @@ fun AlbumDetailScreen(
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
-
-            // Cover and Album info
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 12.dp),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                Box(
+        },
+        containerColor = MaterialTheme.colorScheme.background,
+        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+        modifier = modifier
+            .fillMaxSize()
+            .testTag("album_detail_screen")
+    ) { paddingValues ->
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(paddingValues),
+            contentPadding = PaddingValues(bottom = 16.dp)
+        ) {
+            item {
+                // Cover and Album info
+                Column(
                     modifier = Modifier
-                        .size(160.dp)
-                        .clip(RoundedCornerShape(28.dp))
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                    contentAlignment = Alignment.Center
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
                 ) {
-                    if (!album.artworkUri.isNullOrEmpty()) {
-                        AsyncImage(
-                            model = album.artworkUri,
-                            contentDescription = album.title,
-                            modifier = Modifier.fillMaxSize(),
-                            contentScale = ContentScale.Crop
-                        )
-                    } else {
-                        Icon(
-                            imageVector = Icons.Default.Album,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(64.dp)
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(18.dp))
-
-                Text(
-                    text = album.title,
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        fontWeight = FontWeight.ExtraBold,
-                        letterSpacing = (-0.5).sp
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "${album.artist} • ${album.year ?: "Album"}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(4.dp))
-
-                Text(
-                    text = "${songs.size} tracks",
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.primary
-                )
-
-                Spacer(modifier = Modifier.height(20.dp))
-
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    Button(
-                        onClick = { onPlayAll(songs, false) },
-                        modifier = Modifier.weight(1f),
-                        shape = CircleShape,
-                        enabled = songs.isNotEmpty()
+                    Box(
+                        modifier = Modifier
+                            .size(160.dp)
+                            .clip(RoundedCornerShape(28.dp))
+                            .background(MaterialTheme.colorScheme.surfaceContainerHigh),
+                        contentAlignment = Alignment.Center
                     ) {
-                        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Play All", style = MaterialTheme.typography.labelLarge)
+                        if (!album.artworkUri.isNullOrEmpty()) {
+                            AsyncImage(
+                                model = album.artworkUri,
+                                contentDescription = album.title,
+                                modifier = Modifier.fillMaxSize(),
+                                contentScale = ContentScale.Crop
+                            )
+                        } else {
+                            Icon(
+                                imageVector = Icons.Default.Album,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(64.dp)
+                            )
+                        }
                     }
 
-                    FilledTonalButton(
-                        onClick = { onPlayAll(songs, true) },
-                        modifier = Modifier.weight(1f),
-                        shape = CircleShape,
-                        enabled = songs.isNotEmpty()
+                    Spacer(modifier = Modifier.height(18.dp))
+
+                    Text(
+                        text = album.title,
+                        style = MaterialTheme.typography.headlineSmall.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = (-0.5).sp
+                        ),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "${album.artist} • ${album.year ?: "Album"}",
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Spacer(modifier = Modifier.height(4.dp))
+
+                    Text(
+                        text = "${songs.size} tracks",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                        color = MaterialTheme.colorScheme.primary
+                    )
+
+                    Spacer(modifier = Modifier.height(20.dp))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Icon(Icons.Default.Shuffle, contentDescription = null, modifier = Modifier.size(20.dp))
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text("Shuffle", style = MaterialTheme.typography.labelLarge)
-                    }
-                }
+                        Button(
+                            onClick = { onPlayAll(songs, false) },
+                            modifier = Modifier.weight(1f),
+                            shape = CircleShape,
+                            enabled = songs.isNotEmpty()
+                        ) {
+                            Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Play All", style = MaterialTheme.typography.labelLarge)
+                        }
 
-                Spacer(modifier = Modifier.height(16.dp))
+                        FilledTonalButton(
+                            onClick = { onPlayAll(songs, true) },
+                            modifier = Modifier.weight(1f),
+                            shape = CircleShape,
+                            enabled = songs.isNotEmpty()
+                        ) {
+                            Icon(Icons.Default.Shuffle, contentDescription = null, modifier = Modifier.size(20.dp))
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Text("Shuffle", style = MaterialTheme.typography.labelLarge)
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+                }
             }
-        }
 
-        items(songs) { song ->
-            SongListItem(
-                song = song,
-                isPlaying = isPlaying,
-                isCurrentSong = currentPlayingSong?.id == song.id,
-                onClick = { onSongClick(song, songs) },
-                onLikeToggle = { onLikeToggle(song) },
-                onAddToPlaylist = { onAddToPlaylist(song) },
-                onPlayNext = { onPlayNext(song) },
-                onAddToQueue = { onAddToQueue(song) },
-                onDownload = { onDownload(song) },
-                modifier = Modifier.padding(horizontal = 12.dp)
-            )
+            items(songs) { song ->
+                SongListItem(
+                    song = song,
+                    isPlaying = isPlaying,
+                    isCurrentSong = currentPlayingSong?.id == song.id,
+                    onClick = { onSongClick(song, songs) },
+                    onLikeToggle = { onLikeToggle(song) },
+                    onAddToPlaylist = { onAddToPlaylist(song) },
+                    onPlayNext = { onPlayNext(song) },
+                    onAddToQueue = { onAddToQueue(song) },
+                    onDownload = { onDownload(song) },
+                    modifier = Modifier.padding(horizontal = 12.dp)
+                )
+            }
         }
     }
 }

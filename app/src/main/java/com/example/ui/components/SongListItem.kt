@@ -1,6 +1,7 @@
 package com.example.ui.components
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
@@ -39,25 +40,37 @@ fun SongListItem(
 ) {
     var showMenu by remember { mutableStateOf(false) }
 
-    Surface(
+    Card(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 2.dp)
+            .padding(horizontal = 16.dp, vertical = 6.dp)
             .clickable(onClick = onClick)
             .testTag("song_item_${song.id}"),
-        color = if (isCurrentSong) MaterialTheme.colorScheme.surfaceContainerHigh else Color.Transparent,
-        shape = RoundedCornerShape(16.dp)
+        shape = RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isCurrentSong) {
+                MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.2f)
+            } else {
+                MaterialTheme.colorScheme.surfaceContainerLow
+            }
+        ),
+        border = if (isCurrentSong) {
+            CardDefaults.outlinedCardBorder().copy(
+                width = 1.5.dp,
+                brush = androidx.compose.ui.graphics.SolidColor(MaterialTheme.colorScheme.primary.copy(alpha = 0.6f))
+            )
+        } else null
     ) {
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 8.dp),
+                .padding(12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Artwork Squircle
+            // Left: Album Art 56dp x 56dp, clip(RoundedCornerShape(12.dp))
             Box(
                 modifier = Modifier
-                    .size(52.dp)
+                    .size(56.dp)
                     .clip(RoundedCornerShape(12.dp))
                     .background(MaterialTheme.colorScheme.surfaceContainerHighest),
                 contentAlignment = Alignment.Center
@@ -74,7 +87,7 @@ fun SongListItem(
                         imageVector = if (song.source == MediaSource.LOCAL) Icons.Default.MusicNote else Icons.Default.CloudQueue,
                         contentDescription = null,
                         tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(26.dp)
+                        modifier = Modifier.size(28.dp)
                     )
                 }
 
@@ -95,76 +108,66 @@ fun SongListItem(
                 }
             }
 
-            Spacer(modifier = Modifier.width(14.dp))
-
-            // Song Info
+            // Center: Title (16sp Bold) & Artist (14sp)
             Column(
-                modifier = Modifier.weight(1f)
+                modifier = Modifier
+                    .weight(1f)
+                    .padding(start = 12.dp)
             ) {
                 Text(
                     text = song.title,
                     style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = if (isCurrentSong) FontWeight.Bold else FontWeight.SemiBold,
-                        color = if (isCurrentSong) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                        fontSize = 16.sp,
+                        fontWeight = FontWeight.Bold
                     ),
+                    color = if (isCurrentSong) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
-                Spacer(modifier = Modifier.height(3.dp))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Source badge
-                    Surface(
-                        color = when (song.source) {
-                            MediaSource.LOCAL -> MaterialTheme.colorScheme.secondaryContainer
-                            MediaSource.YOUTUBE -> MaterialTheme.colorScheme.tertiary.copy(alpha = 0.15f)
-                        },
-                        shape = RoundedCornerShape(6.dp),
-                        modifier = Modifier.padding(end = 6.dp)
-                    ) {
-                        Text(
-                            text = if (song.source == MediaSource.LOCAL) "LOCAL" else "ONLINE",
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontSize = 9.sp,
-                                fontWeight = FontWeight.Bold
-                            ),
-                            color = if (song.source == MediaSource.LOCAL) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.tertiary,
-                            modifier = Modifier.padding(horizontal = 5.dp, vertical = 2.dp)
-                        )
-                    }
-
-                    Text(
-                        text = "${song.artist} • ${formatDuration(song.durationMs)}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = "${song.artist} • ${formatDuration(song.durationMs)}",
+                    style = MaterialTheme.typography.bodyMedium.copy(
+                        fontSize = 14.sp
+                    ),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
             }
 
-            // Like action
+            // Right: Like Toggle
             IconButton(
                 onClick = onLikeToggle,
                 modifier = Modifier
-                    .size(44.dp)
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f), CircleShape)
                     .testTag("like_button_${song.id}")
             ) {
                 Icon(
                     imageVector = if (song.isLiked) Icons.Filled.Favorite else Icons.Outlined.FavoriteBorder,
                     contentDescription = if (song.isLiked) "Unlike" else "Like",
                     tint = if (song.isLiked) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(18.dp)
                 )
             }
 
-            // More Options Dropdown
+            Spacer(modifier = Modifier.width(6.dp))
+
+            // Right: MoreVert Menu Button (40dp circle, background = surface.copy(alpha = 0.3f))
             Box {
                 IconButton(
                     onClick = { showMenu = true },
                     modifier = Modifier
-                        .size(44.dp)
+                        .size(40.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f), CircleShape)
+                        .border(
+                            width = 1.dp,
+                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f),
+                            shape = CircleShape
+                        )
                         .testTag("more_button_${song.id}")
                 ) {
                     Icon(
@@ -226,4 +229,3 @@ fun formatDuration(durationMs: Long): String {
     val seconds = totalSeconds % 60
     return String.format("%d:%02d", minutes, seconds)
 }
-

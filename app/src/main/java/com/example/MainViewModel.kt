@@ -105,6 +105,19 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
                 }
             }
         }
+
+        // Sync liked status reactively with playing song
+        viewModelScope.launch {
+            repository.likedSongs.collect { likedList ->
+                val current = playerController.currentSong.value
+                if (current != null) {
+                    val isLiked = likedList.any { it.id == current.id }
+                    if (current.isLiked != isLiked) {
+                        playerController.updateCurrentSongLiked(isLiked)
+                    }
+                }
+            }
+        }
     }
 
     fun setTab(tab: MainNavTab) {
@@ -218,9 +231,8 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     fun toggleLike(song: Song) {
         viewModelScope.launch {
             val liked = repository.toggleLike(song)
-            // If the current playing song is the one being toggled, update it
             if (playerController.currentSong.value?.id == song.id) {
-                // Controller will stay in sync via reactive flow
+                playerController.updateCurrentSongLiked(liked)
             }
         }
     }

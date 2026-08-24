@@ -287,6 +287,17 @@ class MusicPlayerController(
         }
     }
 
+    fun updateCurrentSongLiked(isLiked: Boolean) {
+        val current = _currentSong.value
+        if (current != null) {
+            _currentSong.value = current.copy(isLiked = isLiked)
+            val updatedQueue = _playbackQueue.value.map {
+                if (it.id == current.id) it.copy(isLiked = isLiked) else it
+            }
+            _playbackQueue.value = updatedQueue
+        }
+    }
+
     fun addToQueueNext(song: Song) {
         val currentList = _playbackQueue.value.toMutableList()
         val insertIndex = (_currentQueueIndex.value + 1).coerceAtMost(currentList.size)

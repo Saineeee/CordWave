@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -30,6 +31,7 @@ fun ArtistCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .testTag("artist_card_${artist.id}"),
         shape = RoundedCornerShape(20.dp),
@@ -91,4 +93,3 @@ fun ArtistCard(
         }
     }
 }
-

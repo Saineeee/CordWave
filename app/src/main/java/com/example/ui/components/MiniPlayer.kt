@@ -11,7 +11,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.CloudQueue
+import androidx.compose.material.icons.filled.MusicNote
+import androidx.compose.material.icons.filled.Pause
+import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.SkipNext
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -30,6 +34,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.model.MediaSource
 import com.example.model.Song
+import com.example.ui.theme.TextPrimary
+import com.example.ui.theme.TextSecondary
 
 @Composable
 fun MiniPlayer(
@@ -38,10 +44,13 @@ fun MiniPlayer(
     progress: Float,
     onPlayPause: () -> Unit,
     onSkipNext: () -> Unit,
-    onSkipPrevious: () -> Unit,
-    onClick: () -> Unit,
+    onSkipPrevious: () -> Unit = {},
+    onClick: () -> Unit = {},
+    onExpand: () -> Unit = onClick,
     modifier: Modifier = Modifier
 ) {
+    val handleExpand = if (onClick != {}) onClick else onExpand
+
     AnimatedVisibility(
         visible = song != null,
         enter = slideInVertically { it },
@@ -50,20 +59,15 @@ fun MiniPlayer(
     ) {
         if (song != null) {
             var totalDrag by remember { mutableStateOf(0f) }
+            val topRoundedShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
 
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 14.dp, vertical = 6.dp)
-                    .height(68.dp)
-                    .shadow(elevation = 10.dp, shape = RoundedCornerShape(22.dp))
-                    .clip(RoundedCornerShape(22.dp))
-                    .border(
-                        width = 1.dp,
-                        color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
-                        shape = RoundedCornerShape(22.dp)
-                    )
-                    .clickable(onClick = onClick)
+                    .height(80.dp)
+                    .shadow(elevation = 8.dp, shape = topRoundedShape)
+                    .clip(topRoundedShape)
+                    .clickable(onClick = handleExpand)
                     .pointerInput(Unit) {
                         detectHorizontalDragGestures(
                             onDragEnd = {
@@ -80,22 +84,28 @@ fun MiniPlayer(
                         )
                     }
                     .testTag("mini_player_container"),
-                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                tonalElevation = 8.dp
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
+                tonalElevation = 6.dp
             ) {
                 Box(modifier = Modifier.fillMaxSize()) {
                     Row(
                         modifier = Modifier
                             .fillMaxSize()
-                            .padding(start = 10.dp, end = 14.dp),
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-                        // Artwork Squircle
+                        // Album Art 48dp circle with 1dp border in white.copy(alpha = 0.3f)
                         Box(
                             modifier = Modifier
                                 .size(48.dp)
-                                .clip(RoundedCornerShape(12.dp))
-                                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+                                .shadow(4.dp, CircleShape)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.surfaceContainerHighest, CircleShape)
+                                .border(
+                                    width = 1.dp,
+                                    color = Color.White.copy(alpha = 0.3f),
+                                    shape = CircleShape
+                                ),
                             contentAlignment = Alignment.Center
                         ) {
                             if (!song.albumArtUri.isNullOrEmpty()) {
@@ -119,30 +129,39 @@ fun MiniPlayer(
 
                         // Title & Artist
                         Column(
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            verticalArrangement = Arrangement.Center
                         ) {
                             Text(
                                 text = song.title,
-                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-                                color = MaterialTheme.colorScheme.onSurface,
+                                style = MaterialTheme.typography.bodyLarge.copy(
+                                    fontSize = 16.sp,
+                                    fontWeight = FontWeight.Bold
+                                ),
+                                color = Color.White,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                             Spacer(modifier = Modifier.height(2.dp))
                             Text(
-                                text = "${song.artist} • ${if (song.source == MediaSource.LOCAL) "On Device" else "Online"}",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                text = song.artist,
+                                style = MaterialTheme.typography.bodyMedium.copy(
+                                    fontSize = 13.sp,
+                                    fontWeight = FontWeight.Normal
+                                ),
+                                color = TextSecondary,
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
                         }
 
-                        // Play/Pause Pill Button
+                        Spacer(modifier = Modifier.width(8.dp))
+
+                        // Play/Pause Button: 40dp circle, filled with primary, icon in onPrimary
                         FilledIconButton(
                             onClick = onPlayPause,
                             modifier = Modifier
-                                .size(42.dp)
+                                .size(40.dp)
                                 .testTag("mini_player_play_pause"),
                             colors = IconButtonDefaults.filledIconButtonColors(
                                 containerColor = MaterialTheme.colorScheme.primary,
@@ -156,33 +175,43 @@ fun MiniPlayer(
                             )
                         }
 
-                        Spacer(modifier = Modifier.width(4.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
 
-                        // Skip Next
+                        // Next Button: 40dp circle, outline style: bg = surface.copy(alpha = 0.3f), icon in onSurface
                         IconButton(
                             onClick = onSkipNext,
                             modifier = Modifier
-                                .size(38.dp)
+                                .size(40.dp)
+                                .clip(CircleShape)
+                                .background(
+                                    MaterialTheme.colorScheme.surface.copy(alpha = 0.3f),
+                                    CircleShape
+                                )
+                                .border(
+                                    width = 1.dp,
+                                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.2f),
+                                    shape = CircleShape
+                                )
                                 .testTag("mini_player_skip_next")
                         ) {
                             Icon(
                                 imageVector = Icons.Default.SkipNext,
                                 contentDescription = "Skip Next",
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                modifier = Modifier.size(24.dp)
+                                tint = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.size(22.dp)
                             )
                         }
                     }
 
-                    // Bottom progress indicator line with rounded track
+                    // Bottom progress indicator line
                     LinearProgressIndicator(
                         progress = { progress.coerceIn(0f, 1f) },
                         modifier = Modifier
                             .fillMaxWidth()
-                            .height(3.dp)
+                            .height(2.5.dp)
                             .align(Alignment.BottomCenter),
                         color = MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
+                        trackColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.2f),
                         strokeCap = StrokeCap.Round
                     )
                 }
@@ -190,4 +219,3 @@ fun MiniPlayer(
         }
     }
 }
-

@@ -3,7 +3,6 @@ package com.example.ui.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Album
@@ -13,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +31,7 @@ fun AlbumCard(
     Card(
         modifier = modifier
             .fillMaxWidth()
+            .shadow(4.dp, RoundedCornerShape(20.dp))
             .clickable(onClick = onClick)
             .testTag("album_card_${album.id}"),
         shape = RoundedCornerShape(20.dp),
@@ -105,4 +106,3 @@ fun AlbumCard(
         }
     }
 }
-
