@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -30,6 +31,7 @@ import com.example.ui.components.ArtistCard
 import com.example.ui.components.CollapsibleCommonTopBar
 import com.example.ui.components.SongListItem
 import com.example.ui.components.rememberCollapsibleHeaderState
+import com.example.ui.components.scrollbar.ExpressiveScrollBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -58,6 +60,20 @@ fun SearchScreen(
 
     val headerHeightRange = 180.dp to 56.dp
     val headerState = rememberCollapsibleHeaderState(headerHeightRange)
+    val listState = rememberLazyListState()
+
+    // Index of the first song item inside the LazyColumn: item 0 is the search
+    // bar, followed by the optional searching indicator, the optional recent
+    // searches block and the songs section header.
+    val showSongsSection =
+        (searchCategory == "All" || searchCategory == "Songs") && searchResults.songs.isNotEmpty()
+    val songsStartIndex = remember(isSearching, query, showSongsSection) {
+        var start = 1
+        if (isSearching) start += 1
+        if (query.isEmpty() && !isSearching) start += 1
+        if (showSongsSection) start += 1
+        start
+    }
 
     Box(
         modifier = modifier
@@ -65,6 +81,7 @@ fun SearchScreen(
             .testTag("search_screen")
     ) {
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .nestedScroll(headerState.nestedScrollConnection),
@@ -316,6 +333,16 @@ fun SearchScreen(
                 }
             }
         }
+
+        // Expressive scrollbar on the end edge, above the list
+        ExpressiveScrollBar(
+            listState = listState,
+            modifier = Modifier.align(Alignment.CenterEnd),
+            dragLabelProvider = { index ->
+                searchResults.songs.getOrNull(index - songsStartIndex)
+                    ?.title?.firstOrNull()?.uppercase()
+            }
+        )
 
         // Collapsible Top Bar
         Box(

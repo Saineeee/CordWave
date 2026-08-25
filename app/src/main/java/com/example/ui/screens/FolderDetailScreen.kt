@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -26,6 +27,7 @@ import com.example.model.Song
 import com.example.ui.components.CollapsibleCommonTopBar
 import com.example.ui.components.SongListItem
 import com.example.ui.components.rememberCollapsibleHeaderState
+import com.example.ui.components.scrollbar.ExpressiveScrollBar
 
 @Composable
 fun FolderDetailScreen(
@@ -44,6 +46,7 @@ fun FolderDetailScreen(
 ) {
     val headerHeightRange = 180.dp to 56.dp
     val headerState = rememberCollapsibleHeaderState(headerHeightRange)
+    val listState = rememberLazyListState()
 
     Box(
         modifier = modifier
@@ -51,6 +54,7 @@ fun FolderDetailScreen(
             .testTag("folder_detail_screen")
     ) {
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .nestedScroll(headerState.nestedScrollConnection),
@@ -142,6 +146,15 @@ fun FolderDetailScreen(
                 )
             }
         }
+
+        // Expressive scrollbar on the end edge, above the list
+        ExpressiveScrollBar(
+            listState = listState,
+            modifier = Modifier.align(Alignment.CenterEnd),
+            dragLabelProvider = { index ->
+                folder.songs.getOrNull(index - 1)?.title?.firstOrNull()?.uppercase()
+            }
+        )
 
         // Collapsible Top Bar
         Box(

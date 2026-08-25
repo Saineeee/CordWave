@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.MusicNote
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -37,6 +38,7 @@ import com.example.ui.components.AlbumArtCollage
 import com.example.ui.components.CollapsibleCommonTopBar
 import com.example.ui.components.SongListItem
 import com.example.ui.components.rememberCollapsibleHeaderState
+import com.example.ui.components.scrollbar.ExpressiveScrollBar
 import com.example.ui.theme.TextSecondary
 
 @Composable
@@ -64,6 +66,27 @@ fun HomeScreen(
     val snapFlingBehavior = rememberSnapFlingBehavior(lazyListState = recentLazyListState)
     val headerHeightRange = 180.dp to 56.dp
     val headerState = rememberCollapsibleHeaderState(headerHeightRange)
+    val mainListState = rememberLazyListState()
+
+    // Labels for the drag label, mirroring the exact item order of the main
+    // LazyColumn: hero collage, quick picks header + songs, recently played
+    // carousel, trending header + songs. Null entries produce no label.
+    val dragLabels = remember(quickPicks, recentHistory, trendingSongs) {
+        buildList {
+            add(null as String?)
+            if (quickPicks.isNotEmpty()) {
+                add(null)
+                quickPicks.take(5).forEach { song ->
+                    add(song.title.firstOrNull()?.uppercase())
+                }
+            }
+            if (recentHistory.isNotEmpty()) add(null)
+            add(null)
+            trendingSongs.take(10).forEach { song ->
+                add(song.title.firstOrNull()?.uppercase())
+            }
+        }
+    }
 
     Box(
         modifier = modifier
@@ -71,6 +94,7 @@ fun HomeScreen(
             .testTag("home_screen")
     ) {
         LazyColumn(
+            state = mainListState,
             modifier = Modifier
                 .fillMaxSize()
                 .nestedScroll(headerState.nestedScrollConnection),
@@ -233,6 +257,13 @@ fun HomeScreen(
                 )
             }
         }
+
+        // Expressive scrollbar on the end edge, above the list
+        ExpressiveScrollBar(
+            listState = mainListState,
+            modifier = Modifier.align(Alignment.CenterEnd),
+            dragLabelProvider = { index -> dragLabels.getOrNull(index) }
+        )
 
         // Collapsible Animated Top Bar
         Box(

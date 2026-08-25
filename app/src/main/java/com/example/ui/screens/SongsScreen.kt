@@ -4,6 +4,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
@@ -24,6 +25,7 @@ import com.example.model.Song
 import com.example.ui.components.CollapsibleCommonTopBar
 import com.example.ui.components.SongListItem
 import com.example.ui.components.rememberCollapsibleHeaderState
+import com.example.ui.components.scrollbar.ExpressiveScrollBar
 
 enum class SongFilter {
     ALL,
@@ -61,6 +63,7 @@ fun SongsScreen(
 
     val headerHeightRange = 180.dp to 56.dp
     val headerState = rememberCollapsibleHeaderState(headerHeightRange)
+    val listState = rememberLazyListState()
 
     val filteredSongs = remember(allSongs, downloads, selectedFilter, selectedSort) {
         val list = when (selectedFilter) {
@@ -87,6 +90,7 @@ fun SongsScreen(
             .testTag("songs_screen")
     ) {
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .nestedScroll(headerState.nestedScrollConnection),
@@ -204,6 +208,16 @@ fun SongsScreen(
                 }
             }
         }
+
+        // Expressive scrollbar on the end edge, above the list
+        ExpressiveScrollBar(
+            listState = listState,
+            modifier = Modifier.align(Alignment.CenterEnd),
+            dragLabelProvider = { index ->
+                // Item 0 is the filter chip row, item 1 the play/shuffle buttons.
+                filteredSongs.getOrNull(index - 2)?.title?.firstOrNull()?.uppercase()
+            }
+        )
 
         // Collapsible Top Bar
         Box(

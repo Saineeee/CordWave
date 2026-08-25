@@ -6,6 +6,7 @@ import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -25,6 +26,7 @@ import com.example.presentation.viewmodel.SettingsUiState
 import com.example.presentation.viewmodel.SettingsViewModel
 import com.example.ui.components.CollapsibleCommonTopBar
 import com.example.ui.components.rememberCollapsibleHeaderState
+import com.example.ui.components.scrollbar.ExpressiveScrollBar
 import com.example.ui.components.settings.*
 import com.example.ui.theme.MyApplicationTheme
 
@@ -46,6 +48,7 @@ fun SettingsCategoryScreen(
 
     val headerHeightRange = (if (category.title.length > 13) 200.dp else 180.dp) to 56.dp
     val headerState = rememberCollapsibleHeaderState(headerHeightRange)
+    val listState = rememberLazyListState()
 
     var showResetLyricsDialog by remember { mutableStateOf(false) }
     var showExcludedFoldersDialog by remember { mutableStateOf(false) }
@@ -56,6 +59,7 @@ fun SettingsCategoryScreen(
             .testTag("settings_category_screen_${category.id}")
     ) {
         LazyColumn(
+            state = listState,
             modifier = Modifier
                 .fillMaxSize()
                 .nestedScroll(headerState.nestedScrollConnection),
@@ -440,6 +444,13 @@ fun SettingsCategoryScreen(
                 }
             }
         }
+
+        // Expressive scrollbar on the end edge, above the list. Settings rows
+        // have no natural section characters, so no drag label is provided.
+        ExpressiveScrollBar(
+            listState = listState,
+            modifier = Modifier.align(Alignment.CenterEnd)
+        )
 
         // Collapsible Top Bar
         Box(

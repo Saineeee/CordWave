@@ -1,12 +1,12 @@
 package com.example.ui.components
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -24,8 +24,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -34,6 +38,8 @@ import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.example.model.MediaSource
 import com.example.model.Song
+import com.example.ui.components.player.sheet.MiniPlayerDismissGestureHandler
+import com.example.ui.components.player.sheet.miniPlayerDismissHorizontalGesture
 import com.example.ui.theme.TextPrimary
 import com.example.ui.theme.TextSecondary
 
@@ -47,6 +53,8 @@ fun MiniPlayer(
     onSkipPrevious: () -> Unit = {},
     onClick: () -> Unit = {},
     onExpand: () -> Unit = onClick,
+    dismissGestureEnabled: Boolean = false,
+    onDismiss: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val handleExpand = if (onClick != {}) onClick else onExpand
@@ -58,7 +66,27 @@ fun MiniPlayer(
         modifier = modifier
     ) {
         if (song != null) {
-            var totalDrag by remember { mutableStateOf(0f) }
+            val density = LocalDensity.current
+            val hapticFeedback = LocalHapticFeedback.current
+            val configuration = LocalConfiguration.current
+            val scope = rememberCoroutineScope()
+            val dismissOffset = remember { Animatable(0f) }
+            val currentOnDismiss by rememberUpdatedState(onDismiss)
+            val dismissHandler = remember(density) {
+                MiniPlayerDismissGestureHandler(
+                    scope = scope,
+                    offsetAnimatable = dismissOffset,
+                    density = density,
+                    screenWidthPx = {
+                        with(density) { configuration.screenWidthDp.dp.toPx() }
+                    },
+                    onHapticFeedback = {
+                        hapticFeedback.performHapticFeedback(HapticFeedbackType.LongPress)
+                    },
+                    onDismissPlaylistAndShowUndo = { currentOnDismiss() }
+                )
+            }
+
             val topRoundedShape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 0.dp, bottomEnd = 0.dp)
 
             Surface(
@@ -67,22 +95,14 @@ fun MiniPlayer(
                     .height(80.dp)
                     .shadow(elevation = 8.dp, shape = topRoundedShape)
                     .clip(topRoundedShape)
-                    .clickable(onClick = handleExpand)
-                    .pointerInput(Unit) {
-                        detectHorizontalDragGestures(
-                            onDragEnd = {
-                                if (totalDrag > 80f) {
-                                    onSkipPrevious()
-                                } else if (totalDrag < -80f) {
-                                    onSkipNext()
-                                }
-                                totalDrag = 0f
-                            },
-                            onHorizontalDrag = { _, dragAmount ->
-                                totalDrag += dragAmount
-                            }
-                        )
+                    .graphicsLayer {
+                        translationX = dismissOffset.value
                     }
+                    .clickable(onClick = handleExpand)
+                    .miniPlayerDismissHorizontalGesture(
+                        enabled = dismissGestureEnabled,
+                        handler = dismissHandler
+                    )
                     .testTag("mini_player_container"),
                 color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f),
                 tonalElevation = 6.dp

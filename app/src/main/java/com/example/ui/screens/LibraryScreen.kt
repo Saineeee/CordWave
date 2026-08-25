@@ -10,7 +10,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
+import androidx.compose.foundation.lazy.grid.rememberLazyGridState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -34,6 +36,7 @@ import com.example.ui.components.ArtistCard
 import com.example.ui.components.CollapsibleCommonTopBar
 import com.example.ui.components.SongListItem
 import com.example.ui.components.rememberCollapsibleHeaderState
+import com.example.ui.components.scrollbar.ExpressiveScrollBar
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -324,23 +327,34 @@ fun LibraryScreen(
                     if (effectiveSongs.isEmpty()) {
                         EmptyStateView(message = "No songs found")
                     } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 120.dp)
-                        ) {
-                            items(effectiveSongs, key = { it.id }) { song ->
-                                SongListItem(
-                                    song = song,
-                                    isPlaying = isPlaying,
-                                    isCurrentSong = currentPlayingSong?.id == song.id,
-                                    onClick = { onSongClick(song, effectiveSongs) },
-                                    onLikeToggle = { onLikeToggle(song) },
-                                    onAddToPlaylist = { onAddToPlaylist(song) },
-                                    onPlayNext = { onPlayNext(song) },
-                                    onAddToQueue = { onAddToQueue(song) },
-                                    onDownload = { onDownload(song) }
-                                )
+                        val songsListState = rememberLazyListState()
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            LazyColumn(
+                                state = songsListState,
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(bottom = 120.dp)
+                            ) {
+                                items(effectiveSongs, key = { it.id }) { song ->
+                                    SongListItem(
+                                        song = song,
+                                        isPlaying = isPlaying,
+                                        isCurrentSong = currentPlayingSong?.id == song.id,
+                                        onClick = { onSongClick(song, effectiveSongs) },
+                                        onLikeToggle = { onLikeToggle(song) },
+                                        onAddToPlaylist = { onAddToPlaylist(song) },
+                                        onPlayNext = { onPlayNext(song) },
+                                        onAddToQueue = { onAddToQueue(song) },
+                                        onDownload = { onDownload(song) }
+                                    )
+                                }
                             }
+                            ExpressiveScrollBar(
+                                listState = songsListState,
+                                modifier = Modifier.align(Alignment.CenterEnd),
+                                dragLabelProvider = { index ->
+                                    effectiveSongs.getOrNull(index)?.title?.firstOrNull()?.uppercase()
+                                }
+                            )
                         }
                     }
                 }
@@ -348,23 +362,34 @@ fun LibraryScreen(
                     if (effectiveLikedSongs.isEmpty()) {
                         EmptyStateView(message = "No favourite songs yet")
                     } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 120.dp)
-                        ) {
-                            items(effectiveLikedSongs, key = { it.id }) { song ->
-                                SongListItem(
-                                    song = song.copy(isLiked = true),
-                                    isPlaying = isPlaying,
-                                    isCurrentSong = currentPlayingSong?.id == song.id,
-                                    onClick = { onSongClick(song, effectiveLikedSongs) },
-                                    onLikeToggle = { onLikeToggle(song) },
-                                    onAddToPlaylist = { onAddToPlaylist(song) },
-                                    onPlayNext = { onPlayNext(song) },
-                                    onAddToQueue = { onAddToQueue(song) },
-                                    onDownload = { onDownload(song) }
-                                )
+                        val favouriteListState = rememberLazyListState()
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            LazyColumn(
+                                state = favouriteListState,
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(bottom = 120.dp)
+                            ) {
+                                items(effectiveLikedSongs, key = { it.id }) { song ->
+                                    SongListItem(
+                                        song = song.copy(isLiked = true),
+                                        isPlaying = isPlaying,
+                                        isCurrentSong = currentPlayingSong?.id == song.id,
+                                        onClick = { onSongClick(song, effectiveLikedSongs) },
+                                        onLikeToggle = { onLikeToggle(song) },
+                                        onAddToPlaylist = { onAddToPlaylist(song) },
+                                        onPlayNext = { onPlayNext(song) },
+                                        onAddToQueue = { onAddToQueue(song) },
+                                        onDownload = { onDownload(song) }
+                                    )
+                                }
                             }
+                            ExpressiveScrollBar(
+                                listState = favouriteListState,
+                                modifier = Modifier.align(Alignment.CenterEnd),
+                                dragLabelProvider = { index ->
+                                    effectiveLikedSongs.getOrNull(index)?.title?.firstOrNull()?.uppercase()
+                                }
+                            )
                         }
                     }
                 }
@@ -372,23 +397,34 @@ fun LibraryScreen(
                     if (effectiveAlbums.isEmpty()) {
                         EmptyStateView(message = "No albums found")
                     } else {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(effectiveAlbums) { album ->
-                                AlbumCard(
-                                    album = album,
-                                    onClick = { onSelectAlbum(album) },
-                                    onPlay = {
-                                        val albumTracks = effectiveSongs.filter { it.album == album.title }
-                                        if (albumTracks.isNotEmpty()) onPlayAll(albumTracks, false)
-                                    }
-                                )
+                        val albumsGridState = rememberLazyGridState()
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            LazyVerticalGrid(
+                                state = albumsGridState,
+                                columns = GridCells.Fixed(2),
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(effectiveAlbums) { album ->
+                                    AlbumCard(
+                                        album = album,
+                                        onClick = { onSelectAlbum(album) },
+                                        onPlay = {
+                                            val albumTracks = effectiveSongs.filter { it.album == album.title }
+                                            if (albumTracks.isNotEmpty()) onPlayAll(albumTracks, false)
+                                        }
+                                    )
+                                }
                             }
+                            ExpressiveScrollBar(
+                                gridState = albumsGridState,
+                                modifier = Modifier.align(Alignment.CenterEnd),
+                                dragLabelProvider = { index ->
+                                    effectiveAlbums.getOrNull(index)?.title?.firstOrNull()?.uppercase()
+                                }
+                            )
                         }
                     }
                 }
@@ -396,19 +432,30 @@ fun LibraryScreen(
                     if (effectiveArtists.isEmpty()) {
                         EmptyStateView(message = "No artists found")
                     } else {
-                        LazyVerticalGrid(
-                            columns = GridCells.Fixed(2),
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
-                            horizontalArrangement = Arrangement.spacedBy(12.dp),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            items(effectiveArtists) { artist ->
-                                ArtistCard(
-                                    artist = artist,
-                                    onClick = { onSelectArtist(artist) }
-                                )
+                        val artistsGridState = rememberLazyGridState()
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            LazyVerticalGrid(
+                                state = artistsGridState,
+                                columns = GridCells.Fixed(2),
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(start = 16.dp, end = 16.dp, bottom = 120.dp),
+                                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                                verticalArrangement = Arrangement.spacedBy(12.dp)
+                            ) {
+                                items(effectiveArtists) { artist ->
+                                    ArtistCard(
+                                        artist = artist,
+                                        onClick = { onSelectArtist(artist) }
+                                    )
+                                }
                             }
+                            ExpressiveScrollBar(
+                                gridState = artistsGridState,
+                                modifier = Modifier.align(Alignment.CenterEnd),
+                                dragLabelProvider = { index ->
+                                    effectiveArtists.getOrNull(index)?.name?.firstOrNull()?.uppercase()
+                                }
+                            )
                         }
                     }
                 }
@@ -427,11 +474,14 @@ fun LibraryScreen(
                     if (allPlaylists.isEmpty()) {
                         EmptyStateView(message = "No playlists found")
                     } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 120.dp)
-                        ) {
-                            items(allPlaylists) { playlist ->
+                        val playlistsListState = rememberLazyListState()
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            LazyColumn(
+                                state = playlistsListState,
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(bottom = 120.dp)
+                            ) {
+                                items(allPlaylists) { playlist ->
                                 Card(
                                     modifier = Modifier
                                         .fillMaxWidth()
@@ -509,7 +559,15 @@ fun LibraryScreen(
                                         }
                                     }
                                 }
+                                }
                             }
+                            ExpressiveScrollBar(
+                                listState = playlistsListState,
+                                modifier = Modifier.align(Alignment.CenterEnd),
+                                dragLabelProvider = { index ->
+                                    allPlaylists.getOrNull(index)?.title?.firstOrNull()?.uppercase()
+                                }
+                            )
                         }
                     }
                 }
@@ -568,10 +626,13 @@ fun LibraryScreen(
                             }
                         }
                     } else {
-                        LazyColumn(
-                            modifier = Modifier.fillMaxSize(),
-                            contentPadding = PaddingValues(bottom = 120.dp)
-                        ) {
+                        val foldersListState = rememberLazyListState()
+                        Box(modifier = Modifier.fillMaxSize()) {
+                            LazyColumn(
+                                state = foldersListState,
+                                modifier = Modifier.fillMaxSize(),
+                                contentPadding = PaddingValues(bottom = 120.dp)
+                            ) {
                             items(folders) { folder ->
                                 Card(
                                     modifier = Modifier
@@ -624,7 +685,15 @@ fun LibraryScreen(
                                         }
                                     }
                                 }
+                                }
                             }
+                            ExpressiveScrollBar(
+                                listState = foldersListState,
+                                modifier = Modifier.align(Alignment.CenterEnd),
+                                dragLabelProvider = { index ->
+                                    folders.getOrNull(index)?.name?.firstOrNull()?.uppercase()
+                                }
+                            )
                         }
                     }
                 }

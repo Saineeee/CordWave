@@ -11,17 +11,27 @@ import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.activity.viewModels
 import androidx.compose.animation.*
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.foundation.shape.CornerSize
+import androidx.compose.ui.graphics.BlurEffect
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.util.lerp
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
 import com.example.model.Album
@@ -35,8 +45,13 @@ import com.example.ui.animation.exitTransition
 import com.example.ui.animation.popEnterTransition
 import com.example.ui.animation.popExitTransition
 import com.example.ui.components.*
+import com.example.ui.components.player.sheet.PlayerSheetState
+import com.example.ui.components.player.sheet.SheetMotionController
+import com.example.ui.components.player.sheet.SheetVerticalDragGestureHandler
+import com.example.ui.components.player.sheet.playerSheetVerticalDragGesture
 import com.example.ui.screens.*
 import com.example.ui.theme.MyApplicationTheme
+import kotlinx.coroutines.launch
 
 class MainActivity : ComponentActivity() {
 
@@ -131,7 +146,6 @@ fun OuterTuneMainApp(
     settingsViewModel: SettingsViewModel? = null
 ) {
     val currentTab by viewModel.currentTab.collectAsState()
-    val isNowPlayingExpanded by viewModel.isNowPlayingExpanded.collectAsState()
     val showQueueSheet by viewModel.showQueueSheet.collectAsState()
     val showEqualizerDialog by viewModel.showEqualizerDialog.collectAsState()
     val showSleepTimerDialog by viewModel.showSleepTimerDialog.collectAsState()
@@ -231,80 +245,207 @@ fun OuterTuneMainApp(
         else -> "library"
     }
 
-    // System Back Button Handling
-    val canGoBack = isNowPlayingExpanded || showStatsScreen || showSettingsScreen ||
-            selectedAlbum != null || selectedArtist != null || selectedPlaylist != null ||
-            selectedFolder != null || currentTab != MainNavTab.HOME
+    // ---------------------------------------------------------------------
+    // Player sheet motion state (mini player <-> full screen player)
+    // ---------------------------------------------------------------------
+    val density = LocalDensity.current
+    val sheetScope = rememberCoroutineScope()
+    val snackbarHostState = remember { SnackbarHostState() }
 
-    BackHandler(enabled = canGoBack) {
-        when {
-            isNowPlayingExpanded -> viewModel.setNowPlayingExpanded(false)
-            showStatsScreen -> viewModel.closeStats()
-            showSettingsScreen -> {
-                if (settingsSubRoute != null) {
-                    if (settingsSubRoute == "palette_style") {
-                        settingsSubRoute = "settings_category/appearance"
-                    } else if (settingsSubRoute == "artist_settings") {
-                        settingsSubRoute = "settings_category/library"
-                    } else {
-                        settingsSubRoute = null
+    var playerSheetState by remember { mutableStateOf(PlayerSheetState.COLLAPSED) }
+    var isPlayerDismissed by remember { mutableStateOf(false) }
+    var bottomBarHeightPx by remember { mutableStateOf(0f) }
+    val isPlayerSheetExpanded = playerSheetState == PlayerSheetState.EXPANDED
+
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) {
+        val screenHeightPx = constraints.maxHeight.toFloat()
+        val miniPlayerTotalHeightPx = with(density) { 86.dp.toPx() } // 80dp bar + 6dp gap
+        val expandedSheetY = 0f
+        fun collapsedSheetY(): Float = screenHeightPx - bottomBarHeightPx - miniPlayerTotalHeightPx
+        val dragThresholdPx = with(density) { 5.dp.toPx() }
+
+        val sheetTranslationY = remember(screenHeightPx) {
+            Animatable(initialValue = screenHeightPx - miniPlayerTotalHeightPx)
+        }
+        val sheetExpansionFraction = remember(screenHeightPx) { Animatable(0f) }
+        val visualOvershootScaleY = remember(screenHeightPx) { Animatable(1f) }
+
+        val sheetMotionController = remember(screenHeightPx) {
+            SheetMotionController(
+                translationY = sheetTranslationY,
+                expansionFraction = sheetExpansionFraction,
+                expandedY = expandedSheetY,
+                defaultAnimationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+            )
+        }
+
+        fun expandPlayerSheet() {
+            playerSheetState = PlayerSheetState.EXPANDED
+            viewModel.setNowPlayingExpanded(true)
+            sheetScope.launch {
+                sheetMotionController.animateTo(
+                    targetExpanded = true,
+                    canExpand = currentSong != null,
+                    collapsedY = collapsedSheetY(),
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                )
+            }
+        }
+
+        fun collapsePlayerSheet() {
+            playerSheetState = PlayerSheetState.COLLAPSED
+            viewModel.setNowPlayingExpanded(false)
+            sheetScope.launch {
+                sheetMotionController.animateTo(
+                    targetExpanded = false,
+                    canExpand = currentSong != null,
+                    collapsedY = collapsedSheetY(),
+                    animationSpec = spring(stiffness = Spring.StiffnessMediumLow)
+                )
+            }
+        }
+
+        fun dismissPlayerAndShowUndo() {
+            val queueSnapshot = queue.toList()
+            viewModel.playerController.clearQueue()
+            isPlayerDismissed = true
+            playerSheetState = PlayerSheetState.COLLAPSED
+            viewModel.setNowPlayingExpanded(false)
+            sheetScope.launch {
+                val result = snackbarHostState.showSnackbar(
+                    message = "Playback dismissed",
+                    actionLabel = "Undo",
+                    duration = SnackbarDuration.Short
+                )
+                if (result == SnackbarResult.ActionPerformed) {
+                    isPlayerDismissed = false
+                    if (queueSnapshot.isNotEmpty()) {
+                        viewModel.playSong(queueSnapshot.first(), queueSnapshot)
                     }
-                } else {
-                    viewModel.closeSettings()
                 }
             }
-            selectedAlbum != null -> viewModel.selectAlbum(null)
-            selectedArtist != null -> viewModel.selectArtist(null)
-            selectedPlaylist != null -> viewModel.selectPlaylist(null)
-            selectedFolder != null -> viewModel.selectFolder(null)
-            currentTab != MainNavTab.HOME -> viewModel.setTab(MainNavTab.HOME)
         }
-    }
 
-    Box(modifier = Modifier.fillMaxSize()) {
-        Scaffold(
-            bottomBar = {
-                if (!isNowPlayingExpanded) {
-                    Column(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        // Mini Player
-                        if (currentSong != null) {
-                            MiniPlayer(
-                                song = currentSong,
-                                isPlaying = isPlaying,
-                                progress = progress,
-                                onPlayPause = { viewModel.playerController.togglePlayPause() },
-                                onSkipNext = { viewModel.playerController.skipToNext() },
-                                onSkipPrevious = { viewModel.playerController.skipToPrevious() },
-                                onClick = { viewModel.setNowPlayingExpanded(true) },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(bottom = 6.dp)
-                            )
+        // System Back Button Handling
+        val canGoBack = isPlayerSheetExpanded || showStatsScreen || showSettingsScreen ||
+                selectedAlbum != null || selectedArtist != null || selectedPlaylist != null ||
+                selectedFolder != null || currentTab != MainNavTab.HOME
+
+        BackHandler(enabled = canGoBack) {
+            when {
+                isPlayerSheetExpanded -> collapsePlayerSheet()
+                showStatsScreen -> viewModel.closeStats()
+                showSettingsScreen -> {
+                    if (settingsSubRoute != null) {
+                        if (settingsSubRoute == "palette_style") {
+                            settingsSubRoute = "settings_category/appearance"
+                        } else if (settingsSubRoute == "artist_settings") {
+                            settingsSubRoute = "settings_category/library"
+                        } else {
+                            settingsSubRoute = null
                         }
-
-                        // Floating Bottom Navigation Bar
-                        FloatingBottomNav(
-                            currentRoute = currentRoute,
-                            onNavigate = { route ->
-                                // Dismiss active sub-screens on main tab change
-                                viewModel.selectAlbum(null)
-                                viewModel.selectArtist(null)
-                                viewModel.selectPlaylist(null)
-                                viewModel.selectFolder(null)
-                                viewModel.closeStats()
-                                viewModel.closeSettings()
-
-                                when (route) {
-                                    "home" -> viewModel.setTab(MainNavTab.HOME)
-                                    "search" -> viewModel.setTab(MainNavTab.SEARCH)
-                                    "library" -> viewModel.setTab(MainNavTab.LIBRARY)
-                                }
-                            }
-                        )
+                    } else {
+                        viewModel.closeSettings()
                     }
+                }
+                selectedAlbum != null -> viewModel.selectAlbum(null)
+                selectedArtist != null -> viewModel.selectArtist(null)
+                selectedPlaylist != null -> viewModel.selectPlaylist(null)
+                selectedFolder != null -> viewModel.selectFolder(null)
+                currentTab != MainNavTab.HOME -> viewModel.setTab(MainNavTab.HOME)
+            }
+        }
+
+        val sheetDragHandler = remember(screenHeightPx) {
+            SheetVerticalDragGestureHandler(
+                scope = sheetScope,
+                sheetMotionController = sheetMotionController,
+                translationY = sheetTranslationY,
+                expansionFraction = sheetExpansionFraction,
+                visualOvershootScaleY = visualOvershootScaleY,
+                expandedY = { expandedSheetY },
+                collapsedY = { collapsedSheetY() },
+                miniHeightPx = { miniPlayerTotalHeightPx },
+                dragThresholdPx = dragThresholdPx,
+                velocityThreshold = 150f,
+                onAnimateSheet = { targetExpanded, animationSpec, velocity ->
+                    sheetMotionController.animateTo(
+                        targetExpanded = targetExpanded,
+                        canExpand = currentSong != null,
+                        collapsedY = collapsedSheetY(),
+                        animationSpec = animationSpec,
+                        initialVelocity = velocity
+                    )
+                },
+                onExpandSheetState = {
+                    playerSheetState = PlayerSheetState.EXPANDED
+                    viewModel.setNowPlayingExpanded(true)
+                },
+                onCollapseSheetState = {
+                    playerSheetState = PlayerSheetState.COLLAPSED
+                    viewModel.setNowPlayingExpanded(false)
+                }
+            )
+        }
+
+        // Keep the sheet aligned with the measured geometry (first bottom bar
+        // measurement, window size changes).
+        LaunchedEffect(collapsedSheetY()) {
+            sheetMotionController.syncToExpansion(collapsedSheetY())
+        }
+
+        // Reset the sheet to the collapsed resting position whenever playback
+        // stops entirely or the player has been dismissed.
+        LaunchedEffect(currentSong != null, isPlayerDismissed) {
+            if (currentSong == null || isPlayerDismissed) {
+                playerSheetState = PlayerSheetState.COLLAPSED
+                sheetMotionController.snapTo(
+                    targetExpanded = false,
+                    canExpand = true,
+                    collapsedY = collapsedSheetY()
+                )
+            }
+        }
+
+        // A brand new song re-shows the sheet even after a dismissal.
+        LaunchedEffect(currentSong?.id) {
+            if (currentSong != null) isPlayerDismissed = false
+        }
+
+        Scaffold(
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            bottomBar = {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .onGloballyPositioned { coordinates ->
+                            bottomBarHeightPx = coordinates.size.height.toFloat()
+                        },
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Floating Bottom Navigation Bar, sliding out of the way as
+                    // the player sheet expands.
+                    FloatingBottomNav(
+                        currentRoute = currentRoute,
+                        onNavigate = { route ->
+                            // Dismiss active sub-screens on main tab change
+                            viewModel.selectAlbum(null)
+                            viewModel.selectArtist(null)
+                            viewModel.selectPlaylist(null)
+                            viewModel.selectFolder(null)
+                            viewModel.closeStats()
+                            viewModel.closeSettings()
+
+                            when (route) {
+                                "home" -> viewModel.setTab(MainNavTab.HOME)
+                                "search" -> viewModel.setTab(MainNavTab.SEARCH)
+                                "library" -> viewModel.setTab(MainNavTab.LIBRARY)
+                            }
+                        },
+                        modifier = Modifier.graphicsLayer {
+                            translationY = bottomBarHeightPx * sheetExpansionFraction.value
+                        }
+                    )
                 }
             },
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
@@ -561,37 +702,127 @@ fun OuterTuneMainApp(
             }
         }
 
-        // Full Now Playing overlay screen
-        AnimatedVisibility(
-            visible = isNowPlayingExpanded && currentSong != null,
-            enter = enterTransition(),
-            exit = popExitTransition(),
-            modifier = Modifier.fillMaxSize()
-        ) {
-            NowPlayingScreen(
-                song = currentSong,
-                isPlaying = isPlaying,
-                currentPositionMs = currentPos,
-                durationMs = duration,
-                isShuffle = isShuffle,
-                repeatMode = repeatMode,
-                lyrics = currentLyrics,
-                isLoadingLyrics = isLoadingLyrics,
-                onRefreshLyrics = { viewModel.refreshLyrics() },
-                onCollapse = { viewModel.setNowPlayingExpanded(false) },
-                onPlayPause = { viewModel.playerController.togglePlayPause() },
-                onSeekTo = { viewModel.playerController.seekTo(it) },
-                onSkipNext = { viewModel.playerController.skipToNext() },
-                onSkipPrevious = { viewModel.playerController.skipToPrevious() },
-                onToggleShuffle = { viewModel.playerController.toggleShuffle() },
-                onToggleRepeat = { viewModel.playerController.toggleRepeat() },
-                onToggleLike = { currentSong?.let { viewModel.toggleLike(it) } },
-                onOpenEqualizer = { viewModel.setShowEqualizer(true) },
-                onOpenSleepTimer = { viewModel.setShowSleepTimer(true) },
-                onOpenQueue = { viewModel.setShowQueueSheet(true) },
-                onDownload = { currentSong?.let { viewModel.downloadSong(it) } },
-                onAddToPlaylist = { currentSong?.let { viewModel.setSongForPlaylist(it) } }
-            )
+        // -----------------------------------------------------------------
+        // Gesture-driven player sheet: the mini player and the full screen
+        // player are a single surface that translates between the two
+        // positions. All visuals below are driven by expansionFraction:
+        // corner radius 24dp -> 0dp, content alpha 0 -> 1, album art /
+        // content scale 0.8 -> 1, mini player defocus, bottom nav slide-out
+        // and the collapse squash via visualOvershootScaleY.
+        // -----------------------------------------------------------------
+        val showPlayerSheet = currentSong != null && !isPlayerDismissed
+        val showFullPlayerContent by remember {
+            derivedStateOf { sheetExpansionFraction.value > 0.001f }
+        }
+        val showMiniPlayerContent by remember {
+            derivedStateOf { sheetExpansionFraction.value < 0.999f }
+        }
+        val fullPlayerGestureEnabled by remember {
+            derivedStateOf { sheetExpansionFraction.value > 0.5f }
+        }
+        val miniPlayerGestureEnabled by remember {
+            derivedStateOf { sheetExpansionFraction.value < 0.5f }
+        }
+
+        if (showPlayerSheet) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .graphicsLayer {
+                        translationY = sheetTranslationY.value
+                        scaleY = visualOvershootScaleY.value
+                    }
+            ) {
+                // Full screen player content, fading and scaling in with the
+                // expansion fraction.
+                if (showFullPlayerContent) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .playerSheetVerticalDragGesture(
+                                enabled = fullPlayerGestureEnabled,
+                                handler = sheetDragHandler
+                            )
+                            .graphicsLayer {
+                                val fraction = sheetExpansionFraction.value
+                                val cornerDp = ((1f - fraction) * 24f).dp
+                                shape = RoundedCornerShape(
+                                    topStart = CornerSize(cornerDp),
+                                    topEnd = CornerSize(cornerDp),
+                                    bottomEnd = CornerSize(0.dp),
+                                    bottomStart = CornerSize(0.dp)
+                                )
+                                clip = true
+                                alpha = fraction
+                                val contentScale = lerp(0.8f, 1f, fraction)
+                                scaleX = contentScale
+                                scaleY = contentScale
+                            }
+                    ) {
+                        NowPlayingScreen(
+                            song = currentSong,
+                            isPlaying = isPlaying,
+                            currentPositionMs = currentPos,
+                            durationMs = duration,
+                            isShuffle = isShuffle,
+                            repeatMode = repeatMode,
+                            lyrics = currentLyrics,
+                            isLoadingLyrics = isLoadingLyrics,
+                            onRefreshLyrics = { viewModel.refreshLyrics() },
+                            onCollapse = { collapsePlayerSheet() },
+                            onPlayPause = { viewModel.playerController.togglePlayPause() },
+                            onSeekTo = { viewModel.playerController.seekTo(it) },
+                            onSkipNext = { viewModel.playerController.skipToNext() },
+                            onSkipPrevious = { viewModel.playerController.skipToPrevious() },
+                            onToggleShuffle = { viewModel.playerController.toggleShuffle() },
+                            onToggleRepeat = { viewModel.playerController.toggleRepeat() },
+                            onToggleLike = { currentSong?.let { viewModel.toggleLike(it) } },
+                            onOpenEqualizer = { viewModel.setShowEqualizer(true) },
+                            onOpenSleepTimer = { viewModel.setShowSleepTimer(true) },
+                            onOpenQueue = { viewModel.setShowQueueSheet(true) },
+                            onDownload = { currentSong?.let { viewModel.downloadSong(it) } },
+                            onAddToPlaylist = { currentSong?.let { viewModel.setSongForPlaylist(it) } }
+                        )
+                    }
+                }
+
+                // Mini player content pinned to the top of the sheet; it fades
+                // out and defocuses while the sheet expands.
+                if (showMiniPlayerContent) {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(86.dp)
+                            .align(Alignment.TopCenter)
+                            .playerSheetVerticalDragGesture(
+                                enabled = miniPlayerGestureEnabled,
+                                handler = sheetDragHandler
+                            )
+                            .graphicsLayer {
+                                val fraction = sheetExpansionFraction.value
+                                alpha = (1f - fraction).coerceIn(0f, 1f)
+                                val blurPx = fraction * 10.dp.toPx()
+                                renderEffect =
+                                    if (blurPx > 0.5f) BlurEffect(blurPx, blurPx) else null
+                            }
+                    ) {
+                        MiniPlayer(
+                            song = currentSong,
+                            isPlaying = isPlaying,
+                            progress = progress,
+                            onPlayPause = { viewModel.playerController.togglePlayPause() },
+                            onSkipNext = { viewModel.playerController.skipToNext() },
+                            onSkipPrevious = { viewModel.playerController.skipToPrevious() },
+                            onClick = { expandPlayerSheet() },
+                            dismissGestureEnabled = miniPlayerGestureEnabled,
+                            onDismiss = { dismissPlayerAndShowUndo() },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(bottom = 6.dp)
+                        )
+                    }
+                }
+            }
         }
     }
 
