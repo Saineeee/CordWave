@@ -1,496 +1,243 @@
 package com.example.ui.screens
 
-import android.os.Build
-import androidx.compose.foundation.background
-import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.example.ui.theme.*
+import androidx.compose.ui.zIndex
+import androidx.navigation.NavController
+import com.example.presentation.model.SettingsCategory
+import com.example.ui.components.CollapsibleCommonTopBar
+import com.example.ui.components.rememberCollapsibleHeaderState
+import com.example.ui.components.settings.*
+import com.example.ui.theme.MyApplicationTheme
 
+/**
+ * PixelTune Settings Hub (Level 1)
+ */
 @Composable
 fun SettingsScreen(
-    isOledBlack: Boolean,
-    useDynamicColor: Boolean,
-    accentIndex: Int,
-    onToggleOled: () -> Unit,
-    onToggleDynamicColor: () -> Unit,
-    onSelectAccent: (Int) -> Unit,
-    onOpenEqualizer: () -> Unit,
-    onRescanLibrary: () -> Unit,
-    onBack: () -> Unit,
+    navController: NavController? = null,
+    onNavigateToCategory: (String) -> Unit = { categoryId ->
+        navController?.navigate("settings_category/$categoryId")
+    },
+    onOpenEqualizer: () -> Unit = {
+        navController?.navigate("equalizer") ?: onNavigateToCategory("equalizer")
+    },
+    onOpenDeviceCapabilities: () -> Unit = {
+        navController?.navigate("device_capabilities") ?: onNavigateToCategory("device_capabilities")
+    },
+    onOpenAccounts: () -> Unit = {
+        navController?.navigate("accounts") ?: onNavigateToCategory("accounts")
+    },
+    onOpenAbout: () -> Unit = {
+        navController?.navigate("about") ?: onNavigateToCategory("about")
+    },
+    onBack: () -> Unit = { navController?.popBackStack() },
+    // Backward compatibility parameters for existing caller
+    isOledBlack: Boolean = false,
+    useDynamicColor: Boolean = true,
+    accentIndex: Int = 0,
+    onToggleOled: () -> Unit = {},
+    onToggleDynamicColor: () -> Unit = {},
+    onSelectAccent: (Int) -> Unit = {},
+    onRescanLibrary: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
-    var wifiOnlyDownload by remember { mutableStateOf(true) }
-    var highQualityStream by remember { mutableStateOf(true) }
-    var gaplessPlayback by remember { mutableStateOf(true) }
+    val headerHeightRange = 180.dp to 56.dp
+    val headerState = rememberCollapsibleHeaderState(headerHeightRange)
 
-    val isDynamicColorAvailable = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
+    val isDark = MaterialTheme.colorScheme.background.let {
+        androidx.core.graphics.ColorUtils.calculateLuminance(it.hashCode()) < 0.5
+    }
 
-    val accentColors: List<Pair<String, Color>> = listOf(
-        Pair("Pixel Violet", PixelPlayerPurplePrimary),
-        Pair("Amber Sunset", PixelPlayerOrange),
-        Pair("Sage Emerald", Color(0xFF4CAF50)),
-        Pair("Berry Coral", PixelPlayerPink),
-        Pair("Sky Blue", Color(0xFF42A5F5))
-    )
-
-    Scaffold(
-        topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.statusBars)
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(start = 16.dp, end = 20.dp, top = 12.dp, bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f), CircleShape)
-                        .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f),
-                            shape = CircleShape
-                        )
-                        .testTag("settings_back_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Settings",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        },
-        containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    Box(
         modifier = modifier
             .fillMaxSize()
             .testTag("settings_screen")
-    ) { paddingValues ->
+    ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(bottom = 16.dp)
+                .nestedScroll(headerState.nestedScrollConnection),
+            contentPadding = PaddingValues(top = headerHeightRange.first + 8.dp, bottom = 120.dp, start = 16.dp, end = 16.dp)
         ) {
+            // Group 1: Core Music Experience (Library, Appearance, Playback, Behavior)
             item {
-                Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)) {
-                    Text(
-                        text = "Preferences & Audio",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.5).sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
+                Text(
+                    text = "EXPERIENCE",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 8.dp, bottom = 8.dp, top = 4.dp)
+                )
+
+                ExpressiveSettingsGroup {
+                    // Library item (Top rounded: 24dp top, 4dp bottom)
+                    ExpressiveCategoryItem(
+                        category = SettingsCategory.LIBRARY,
+                        onClick = { onNavigateToCategory(SettingsCategory.LIBRARY.id) },
+                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
                     )
-                    Spacer(modifier = Modifier.height(20.dp))
 
-                    // SECTION 1: Appearance & Dynamic Color
-                    Text(
-                        text = "APPEARANCE & DYNAMIC COLOR",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.8.sp
-                        ),
-                        color = MaterialTheme.colorScheme.primary
+                    // Appearance item (Inner rounded: 4dp all)
+                    ExpressiveCategoryItem(
+                        category = SettingsCategory.APPEARANCE,
+                        onClick = { onNavigateToCategory(SettingsCategory.APPEARANCE.id) },
+                        shape = RoundedCornerShape(4.dp)
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
 
-                    Card(
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(18.dp)) {
-                            // Dynamic Color (Material You)
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(
-                                            "Dynamic Wallpaper Color",
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Surface(
-                                            color = if (useDynamicColor && isDynamicColorAvailable) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerHighest,
-                                            shape = CircleShape
-                                        ) {
-                                            Text(
-                                                text = if (isDynamicColorAvailable) "Material You" else "Android 12+",
-                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                                color = if (useDynamicColor && isDynamicColorAvailable) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                            )
-                                        }
-                                    }
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        if (isDynamicColorAvailable)
-                                            "Extracts color scheme dynamically from device wallpaper"
-                                       else
-                                            "Requires Android 12 or above for system wallpaper extraction",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Switch(
-                                    checked = useDynamicColor && isDynamicColorAvailable,
-                                    onCheckedChange = { onToggleDynamicColor() },
-                                    enabled = isDynamicColorAvailable,
-                                    modifier = Modifier.testTag("switch_dynamic_color")
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // OLED Black Switch
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        "Pure OLED Black",
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        "Pitch black canvas for high contrast and battery efficiency",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Switch(
-                                    checked = isOledBlack,
-                                    onCheckedChange = { onToggleOled() },
-                                    modifier = Modifier.testTag("switch_oled_black")
-                                )
-                            }
-
-                            Spacer(modifier = Modifier.height(16.dp))
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                            Spacer(modifier = Modifier.height(16.dp))
-
-                            // Accent selector (Used when dynamic color is turned off or on pre-Android 12)
-                            Column {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        "Custom Accent Tone",
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    if (useDynamicColor && isDynamicColorAvailable) {
-                                        Text(
-                                            "Fallback palette",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                                Spacer(modifier = Modifier.height(12.dp))
-
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    accentColors.forEachIndexed { index, (name, color) ->
-                                        val isSelected = (accentIndex == index)
-                                        Box(
-                                            modifier = Modifier
-                                                .size(46.dp)
-                                                .clip(CircleShape)
-                                                .background(color)
-                                                .let { mod ->
-                                                if (isSelected) mod.border(3.dp, MaterialTheme.colorScheme.onSurface, CircleShape)
-                                                else mod
-                                            }
-                                            .clickable { onSelectAccent(index) },
-                                            contentAlignment = Alignment.Center
-                                        ) {
-                                            if (isSelected) {
-                                                Icon(
-                                                    imageVector = Icons.Default.Check,
-                                                    contentDescription = name,
-                                                    tint = Color.White,
-                                                    modifier = Modifier.size(22.dp)
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // SECTION 2: Audio & Playback
-                    Text(
-                        text = "AUDIO ENGINE & FX",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.8.sp
-                        ),
-                        color = MaterialTheme.colorScheme.primary
+                    // Playback item (Inner rounded: 4dp all)
+                    ExpressiveCategoryItem(
+                        category = SettingsCategory.PLAYBACK,
+                        onClick = { onNavigateToCategory(SettingsCategory.PLAYBACK.id) },
+                        shape = RoundedCornerShape(4.dp)
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
 
-                    Card(
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(18.dp)) {
-                            Surface(
-                                onClick = onOpenEqualizer,
-                                color = Color.Transparent,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            "Audio Equalizer & Sound FX",
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                        Spacer(modifier = Modifier.height(2.dp))
-                                        Text(
-                                            "5-band EQ, Dynamic Bass Boost, Virtualizer",
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                    Icon(
-                                        Icons.Default.ChevronRight,
-                                        contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            }
-
-                            Spacer(modifier = Modifier.height(14.dp))
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        "Gapless Audio Playback",
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        "Seamless audio track transitions without pauses",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Switch(checked = gaplessPlayback, onCheckedChange = { gaplessPlayback = it })
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // SECTION 3: YouTube Music & Downloads
-                    Text(
-                        text = "STREAMING & LOCAL STORAGE",
-                        style = MaterialTheme.typography.labelMedium.copy(
-                            fontWeight = FontWeight.Bold,
-                            letterSpacing = 0.8.sp
-                        ),
-                        color = MaterialTheme.colorScheme.primary
+                    // Behavior item (Inner rounded: 4dp all)
+                    ExpressiveCategoryItem(
+                        category = SettingsCategory.BEHAVIOR,
+                        onClick = { onNavigateToCategory(SettingsCategory.BEHAVIOR.id) },
+                        shape = RoundedCornerShape(4.dp)
                     )
-                    Spacer(modifier = Modifier.height(10.dp))
 
-                    Card(
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.padding(18.dp)) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        "High-Fidelity Audio Stream",
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        "256kbps Opus / 320kbps Lossless MP3",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Switch(checked = highQualityStream, onCheckedChange = { highQualityStream = it })
-                            }
-
-                            Spacer(modifier = Modifier.height(14.dp))
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        "Download over Wi-Fi only",
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        "Conserve cellular mobile data usage",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                Switch(checked = wifiOnlyDownload, onCheckedChange = { wifiOnlyDownload = it })
-                            }
-
-                            Spacer(modifier = Modifier.height(14.dp))
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                            Spacer(modifier = Modifier.height(14.dp))
-
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(
-                                        "Local Media Scanner",
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold),
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    Text(
-                                        "Scan device storage for audio tracks",
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(12.dp))
-                                FilledTonalButton(
-                                    onClick = onRescanLibrary,
-                                    shape = CircleShape,
-                                    contentPadding = PaddingValues(horizontal = 14.dp, vertical = 6.dp)
-                                ) {
-                                    Text("Rescan", style = MaterialTheme.typography.labelMedium)
-                                }
-                            }
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(24.dp))
-
-                    // About section (Pixel card style)
-                    Card(
-                        shape = RoundedCornerShape(24.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(20.dp),
-                            horizontalAlignment = Alignment.CenterHorizontally
-                        ) {
-                            Text(
-                                text = "OuterTune Music",
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                            Spacer(modifier = Modifier.height(2.dp))
-                            Text(
-                                text = "Material 3 Expressive • Android Media3",
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.height(6.dp))
-                            Surface(
-                                color = MaterialTheme.colorScheme.primaryContainer,
-                                shape = CircleShape
-                            ) {
-                                Text(
-                                    text = "Open Source Client",
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer,
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
-                    }
+                    // Import Playlist item (Bottom rounded: 4dp top, 24dp bottom)
+                    ExpressiveCategoryItem(
+                        category = SettingsCategory.IMPORT_PLAYLIST,
+                        onClick = { onNavigateToCategory(SettingsCategory.IMPORT_PLAYLIST.id) },
+                        shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
+                    )
                 }
+
+                Spacer(modifier = Modifier.height(20.dp))
             }
+
+            // Standalone Direct Nav Items: Equalizer, Device Capabilities, Accounts
+            item {
+                Text(
+                    text = "AUDIO & HARDWARE",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+                )
+
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // Equalizer Standalone Card
+                    ExpressiveNavigationItem(
+                        title = "Equalizer & Sound Effects",
+                        subtitle = "5-band graphic EQ, bass boost, and audio visualizer",
+                        icon = Icons.Default.Equalizer,
+                        colors = getCategoryColors(SettingsCategory.EQUALIZER, isDark),
+                        onClick = onOpenEqualizer,
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.testTag("settings_item_equalizer")
+                    )
+
+                    // Device Capabilities Standalone Card
+                    ExpressiveNavigationItem(
+                        title = "Device Capabilities",
+                        subtitle = "Hardware decoders, audio output, and supported codecs",
+                        icon = Icons.Default.Smartphone,
+                        colors = getCategoryColors(SettingsCategory.DEVICE_CAPABILITIES, isDark),
+                        onClick = onOpenDeviceCapabilities,
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.testTag("settings_item_device_capabilities")
+                    )
+
+                    // Accounts Standalone Card
+                    ExpressiveNavigationItem(
+                        title = "Accounts & Services",
+                        subtitle = "YouTube Music, Last.fm scrobbling, and cloud sync",
+                        icon = Icons.Default.AccountCircle,
+                        colors = getCategoryColors(SettingsCategory.ACCOUNTS, isDark),
+                        onClick = onOpenAccounts,
+                        shape = RoundedCornerShape(24.dp),
+                        modifier = Modifier.testTag("settings_item_accounts")
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(20.dp))
+            }
+
+            // Group 2: Backup & System (Backup & Restore, About)
+            item {
+                Text(
+                    text = "SYSTEM & DATA",
+                    style = MaterialTheme.typography.labelLarge.copy(
+                        fontWeight = FontWeight.Bold,
+                        letterSpacing = 0.8.sp
+                    ),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(start = 8.dp, bottom = 8.dp)
+                )
+
+                ExpressiveSettingsGroup {
+                    // Backup & Restore (Top rounded: 24dp top, 4dp bottom)
+                    ExpressiveCategoryItem(
+                        category = SettingsCategory.BACKUP_RESTORE,
+                        onClick = { onNavigateToCategory(SettingsCategory.BACKUP_RESTORE.id) },
+                        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
+                    )
+
+                    // About (Bottom rounded: 4dp top, 24dp bottom)
+                    ExpressiveCategoryItem(
+                        category = SettingsCategory.ABOUT,
+                        onClick = onOpenAbout,
+                        shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 24.dp, bottomEnd = 24.dp)
+                    )
+                }
+
+                Spacer(modifier = Modifier.height(32.dp))
+            }
+        }
+
+        // Collapsible Top Bar
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(headerState.currentHeaderHeight)
+                .align(Alignment.TopCenter)
+                .zIndex(1f)
+        ) {
+            CollapsibleCommonTopBar(
+                title = "Settings",
+                subtitle = "App preferences & customizations",
+                collapseFraction = headerState.collapseFraction,
+                headerHeight = headerState.currentHeaderHeight,
+                showBackButton = true,
+                onBackClick = onBack
+            )
         }
     }
 }
 
+@Preview
+@Composable
+fun SettingsScreenPreview() {
+    MyApplicationTheme(darkTheme = true) {
+        SettingsScreen(
+            onNavigateToCategory = {},
+            onOpenEqualizer = {},
+            onOpenDeviceCapabilities = {},
+            onOpenAccounts = {},
+            onOpenAbout = {},
+            onBack = {}
+        )
+    }
+}

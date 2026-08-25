@@ -18,14 +18,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.example.model.*
 import com.example.ui.components.AlbumCard
 import com.example.ui.components.ArtistCard
+import com.example.ui.components.CollapsibleCommonTopBar
 import com.example.ui.components.SongListItem
+import com.example.ui.components.rememberCollapsibleHeaderState
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -52,212 +56,183 @@ fun SearchScreen(
     val categories = listOf("All", "Songs", "Albums", "Artists", "Playlists")
     var isSearchFocused by remember { mutableStateOf(false) }
 
-    LazyColumn(
+    val headerHeightRange = 180.dp to 56.dp
+    val headerState = rememberCollapsibleHeaderState(headerHeightRange)
+
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .statusBarsPadding()
-            .testTag("search_screen"),
-        contentPadding = PaddingValues(bottom = 120.dp)
+            .testTag("search_screen")
     ) {
-        // Large "Search" heading
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 12.dp)
-            ) {
-                Text(
-                    text = "Search",
-                    style = MaterialTheme.typography.headlineLarge.copy(
-                        fontSize = 32.sp,
-                        fontWeight = FontWeight.SemiBold
-                    ),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                // Full Pill Search Bar (surfaceContainerLow, 24dp corner shape)
-                TextField(
-                    value = query,
-                    onValueChange = onQueryChange,
-                    placeholder = {
-                        Text(
-                            "Search songs, albums, artists...",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                        )
-                    },
-                    leadingIcon = {
-                        Icon(
-                            Icons.Default.Search,
-                            contentDescription = "Search",
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    },
-                    trailingIcon = {
-                        if (query.isNotEmpty()) {
-                            IconButton(onClick = { onQueryChange("") }) {
-                                Icon(Icons.Default.Close, contentDescription = "Clear search", modifier = Modifier.size(20.dp))
-                            }
-                        }
-                    },
-                    shape = RoundedCornerShape(24.dp),
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledIndicatorColor = Color.Transparent
-                    ),
-                    singleLine = true,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .onFocusChanged { focusState ->
-                            isSearchFocused = focusState.isFocused
-                            onSearchFocusChange(focusState.isFocused)
-                        }
-                        .testTag("search_input_field")
-                )
-
-                Spacer(modifier = Modifier.height(14.dp))
-
-                // Recent searches horizontal chips
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    recentSearches.forEach { tag ->
-                        Surface(
-                            onClick = { onQueryChange(tag) },
-                            shape = CircleShape,
-                            color = MaterialTheme.colorScheme.surfaceContainerLow,
-                            modifier = Modifier.height(36.dp)
-                        ) {
-                            Row(
-                                modifier = Modifier.padding(horizontal = 14.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.History,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                    modifier = Modifier.size(14.dp)
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = tag,
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(12.dp))
-
-                // Category filter chips
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    categories.forEach { cat ->
-                        val isSelected = searchCategory == cat
-                        Surface(
-                            onClick = { searchCategory = cat },
-                            shape = CircleShape,
-                            color = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
-                            modifier = Modifier.height(38.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier.padding(horizontal = 16.dp),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = cat,
-                                    style = MaterialTheme.typography.labelMedium.copy(
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
-                                    ),
-                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
-        if (isSearching) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(headerState.nestedScrollConnection),
+            contentPadding = PaddingValues(top = headerHeightRange.first + 8.dp, bottom = 120.dp)
+        ) {
+            // Search Bar & Filter Chips
             item {
-                Box(
+                Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(56.dp),
-                    contentAlignment = Alignment.Center
+                        .padding(horizontal = 20.dp, vertical = 8.dp)
                 ) {
-                    CircularProgressIndicator(
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(36.dp),
-                        strokeWidth = 3.dp
-                    )
-                }
-            }
-        } else if (query.isBlank()) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 32.dp, vertical = 64.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Box(
-                            modifier = Modifier
-                                .size(64.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.surfaceContainerHigh),
-                            contentAlignment = Alignment.Center
-                        ) {
+                    // Full Pill Search Bar (surfaceContainerLow, 24dp corner shape)
+                    TextField(
+                        value = query,
+                        onValueChange = onQueryChange,
+                        placeholder = {
+                            Text(
+                                "Search songs, albums, artists...",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        },
+                        leadingIcon = {
                             Icon(
-                                imageVector = Icons.Default.YoutubeSearchedFor,
-                                contentDescription = null,
+                                Icons.Default.Search,
+                                contentDescription = "Search",
                                 tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(32.dp)
+                                modifier = Modifier.size(24.dp)
+                            )
+                        },
+                        trailingIcon = {
+                            if (query.isNotEmpty()) {
+                                IconButton(onClick = { onQueryChange("") }) {
+                                    Icon(Icons.Default.Close, contentDescription = "Clear search", modifier = Modifier.size(20.dp))
+                                }
+                            }
+                        },
+                        shape = RoundedCornerShape(24.dp),
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledIndicatorColor = Color.Transparent
+                        ),
+                        singleLine = true,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .onFocusChanged { focusState ->
+                                isSearchFocused = focusState.isFocused
+                                onSearchFocusChange(focusState.isFocused)
+                            }
+                            .testTag("search_text_field")
+                    )
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    // Horizontal Categories Chips
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        categories.forEach { category ->
+                            val isSelected = searchCategory == category
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { searchCategory = category },
+                                label = {
+                                    Text(
+                                        text = category,
+                                        style = MaterialTheme.typography.labelLarge.copy(
+                                            fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Medium
+                                        )
+                                    )
+                                },
+                                shape = CircleShape,
+                                colors = FilterChipDefaults.filterChipColors(
+                                    selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
+                                    selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                                    labelColor = MaterialTheme.colorScheme.onSurfaceVariant
+                                ),
+                                border = null,
+                                modifier = Modifier.height(36.dp)
                             )
                         }
-                        Spacer(modifier = Modifier.height(16.dp))
+                    }
+                }
+            }
+
+            // Searching indicator
+            if (isSearching) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(32.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        CircularProgressIndicator(
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(36.dp)
+                        )
+                    }
+                }
+            }
+
+            // Empty query: Suggestions & Recent Searches
+            if (query.isEmpty() && !isSearching) {
+                item {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 20.dp, vertical = 12.dp)
+                    ) {
                         Text(
-                            text = "Find your favorite music",
+                            text = "Recent Searches",
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = "Search across YouTube Music and local storage",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+
+                        Spacer(modifier = Modifier.height(10.dp))
+
+                        recentSearches.forEach { item ->
+                            Surface(
+                                onClick = { onQueryChange(item) },
+                                shape = RoundedCornerShape(16.dp),
+                                color = Color.Transparent,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(vertical = 10.dp, horizontal = 4.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.History,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(14.dp))
+                                    Text(
+                                        text = item,
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
-        } else {
+
             // Songs Section
             if ((searchCategory == "All" || searchCategory == "Songs") && searchResults.songs.isNotEmpty()) {
                 item {
+                    Spacer(modifier = Modifier.height(12.dp))
                     Text(
                         text = "Songs (${searchResults.songs.size})",
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                        modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
                     )
                 }
 
@@ -271,7 +246,8 @@ fun SearchScreen(
                         onAddToPlaylist = { onAddToPlaylist(song) },
                         onPlayNext = { onPlayNext(song) },
                         onAddToQueue = { onAddToQueue(song) },
-                        onDownload = { onDownload(song) }
+                        onDownload = { onDownload(song) },
+                        modifier = Modifier.padding(horizontal = 14.dp)
                     )
                 }
             }
@@ -295,7 +271,7 @@ fun SearchScreen(
                         horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
                         items(searchResults.albums) { album ->
-                            Box(modifier = Modifier.width(160.dp)) {
+                            Box(modifier = Modifier.width(150.dp)) {
                                 AlbumCard(
                                     album = album,
                                     onClick = { onSelectAlbum(album) },
@@ -339,6 +315,24 @@ fun SearchScreen(
                     }
                 }
             }
+        }
+
+        // Collapsible Top Bar
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(headerState.currentHeaderHeight)
+                .align(Alignment.TopCenter)
+                .zIndex(1f)
+        ) {
+            CollapsibleCommonTopBar(
+                title = "Search",
+                subtitle = if (query.isNotEmpty()) "Results for \"$query\"" else "Discover music",
+                collapseFraction = headerState.collapseFraction,
+                headerHeight = headerState.currentHeaderHeight,
+                showBackButton = false,
+                onBackClick = {}
+            )
         }
     }
 }

@@ -12,14 +12,18 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.example.model.DownloadItem
 import com.example.model.MediaSource
 import com.example.model.Song
+import com.example.ui.components.CollapsibleCommonTopBar
 import com.example.ui.components.SongListItem
+import com.example.ui.components.rememberCollapsibleHeaderState
 
 enum class SongFilter {
     ALL,
@@ -48,11 +52,15 @@ fun SongsScreen(
     onPlayNext: (Song) -> Unit,
     onAddToQueue: (Song) -> Unit,
     onDownload: (Song) -> Unit,
+    onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     var selectedFilter by remember { mutableStateOf(SongFilter.ALL) }
     var selectedSort by remember { mutableStateOf(SongSort.DATE_ADDED) }
     var showSortMenu by remember { mutableStateOf(false) }
+
+    val headerHeightRange = 180.dp to 56.dp
+    val headerState = rememberCollapsibleHeaderState(headerHeightRange)
 
     val filteredSongs = remember(allSongs, downloads, selectedFilter, selectedSort) {
         val list = when (selectedFilter) {
@@ -73,33 +81,146 @@ fun SongsScreen(
         }
     }
 
-    LazyColumn(
+    Box(
         modifier = modifier
             .fillMaxSize()
-            .testTag("songs_screen"),
-        contentPadding = PaddingValues(bottom = 120.dp)
+            .testTag("songs_screen")
     ) {
-        // Header
-        item {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(start = 20.dp, end = 20.dp, top = 20.dp, bottom = 8.dp)
-            ) {
+        LazyColumn(
+            modifier = Modifier
+                .fillMaxSize()
+                .nestedScroll(headerState.nestedScrollConnection),
+            contentPadding = PaddingValues(top = headerHeightRange.first + 8.dp, bottom = 120.dp)
+        ) {
+            // Filter Chips Row
+            item {
                 Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = 20.dp, vertical = 6.dp),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    Text(
-                        text = "All Songs",
-                        style = MaterialTheme.typography.headlineMedium.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.5).sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
+                    FilterChip(
+                        selected = selectedFilter == SongFilter.ALL,
+                        onClick = { selectedFilter = SongFilter.ALL },
+                        shape = CircleShape,
+                        label = { Text("All (${allSongs.size})", style = MaterialTheme.typography.labelMedium) }
                     )
+                    FilterChip(
+                        selected = selectedFilter == SongFilter.LOCAL,
+                        onClick = { selectedFilter = SongFilter.LOCAL },
+                        shape = CircleShape,
+                        leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                        label = { Text("Local", style = MaterialTheme.typography.labelMedium) }
+                    )
+                    FilterChip(
+                        selected = selectedFilter == SongFilter.YOUTUBE,
+                        onClick = { selectedFilter = SongFilter.YOUTUBE },
+                        shape = CircleShape,
+                        leadingIcon = { Icon(Icons.Default.Cloud, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                        label = { Text("YouTube", style = MaterialTheme.typography.labelMedium) }
+                    )
+                    FilterChip(
+                        selected = selectedFilter == SongFilter.OFFLINE,
+                        onClick = { selectedFilter = SongFilter.OFFLINE },
+                        shape = CircleShape,
+                        leadingIcon = { Icon(Icons.Default.DownloadDone, contentDescription = null, modifier = Modifier.size(16.dp)) },
+                        label = { Text("Offline", style = MaterialTheme.typography.labelMedium) }
+                    )
+                }
+            }
 
+            // Play All / Shuffle Buttons
+            item {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 20.dp, vertical = 10.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp)
+                ) {
+                    Button(
+                        onClick = { onPlayAll(filteredSongs, false) },
+                        modifier = Modifier.weight(1f),
+                        shape = CircleShape,
+                        enabled = filteredSongs.isNotEmpty()
+                    ) {
+                        Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Play All", style = MaterialTheme.typography.labelLarge)
+                    }
+
+                    FilledTonalButton(
+                        onClick = { onPlayAll(filteredSongs, true) },
+                        modifier = Modifier.weight(1f),
+                        shape = CircleShape,
+                        enabled = filteredSongs.isNotEmpty()
+                    ) {
+                        Icon(Icons.Default.Shuffle, contentDescription = null, modifier = Modifier.size(20.dp))
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text("Shuffle", style = MaterialTheme.typography.labelLarge)
+                    }
+                }
+            }
+
+            if (filteredSongs.isEmpty()) {
+                item {
+                    Box(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(64.dp),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Icon(
+                                imageVector = Icons.Default.MusicOff,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(48.dp)
+                            )
+                            Spacer(modifier = Modifier.height(12.dp))
+                            Text(
+                                text = "No songs found for this filter",
+                                style = MaterialTheme.typography.bodyLarge,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            } else {
+                items(filteredSongs) { song ->
+                    SongListItem(
+                        song = song,
+                        isPlaying = isPlaying,
+                        isCurrentSong = currentPlayingSong?.id == song.id,
+                        onClick = { onSongClick(song, filteredSongs) },
+                        onLikeToggle = { onLikeToggle(song) },
+                        onAddToPlaylist = { onAddToPlaylist(song) },
+                        onPlayNext = { onPlayNext(song) },
+                        onAddToQueue = { onAddToQueue(song) },
+                        onDownload = { onDownload(song) },
+                        modifier = Modifier.padding(horizontal = 12.dp)
+                    )
+                }
+            }
+        }
+
+        // Collapsible Top Bar
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(headerState.currentHeaderHeight)
+                .align(Alignment.TopCenter)
+                .zIndex(1f)
+        ) {
+            CollapsibleCommonTopBar(
+                title = "All Songs",
+                subtitle = "${filteredSongs.size} tracks available",
+                collapseFraction = headerState.collapseFraction,
+                headerHeight = headerState.currentHeaderHeight,
+                showBackButton = onBack != null,
+                onBackClick = { onBack?.invoke() },
+                actions = {
                     Box {
                         FilledTonalIconButton(
                             onClick = { showSortMenu = true },
@@ -150,127 +271,7 @@ fun SongsScreen(
                         }
                     }
                 }
-
-                Spacer(modifier = Modifier.height(2.dp))
-                Text(
-                    text = "${filteredSongs.size} tracks available",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        // Filter Chips Row
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .horizontalScroll(rememberScrollState())
-                    .padding(horizontal = 20.dp, vertical = 6.dp),
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
-            ) {
-                FilterChip(
-                    selected = selectedFilter == SongFilter.ALL,
-                    onClick = { selectedFilter = SongFilter.ALL },
-                    shape = CircleShape,
-                    label = { Text("All (${allSongs.size})", style = MaterialTheme.typography.labelMedium) }
-                )
-                FilterChip(
-                    selected = selectedFilter == SongFilter.LOCAL,
-                    onClick = { selectedFilter = SongFilter.LOCAL },
-                    shape = CircleShape,
-                    leadingIcon = { Icon(Icons.Default.Folder, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    label = { Text("Local", style = MaterialTheme.typography.labelMedium) }
-                )
-                FilterChip(
-                    selected = selectedFilter == SongFilter.YOUTUBE,
-                    onClick = { selectedFilter = SongFilter.YOUTUBE },
-                    shape = CircleShape,
-                    leadingIcon = { Icon(Icons.Default.Cloud, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    label = { Text("YouTube", style = MaterialTheme.typography.labelMedium) }
-                )
-                FilterChip(
-                    selected = selectedFilter == SongFilter.OFFLINE,
-                    onClick = { selectedFilter = SongFilter.OFFLINE },
-                    shape = CircleShape,
-                    leadingIcon = { Icon(Icons.Default.DownloadDone, contentDescription = null, modifier = Modifier.size(16.dp)) },
-                    label = { Text("Offline", style = MaterialTheme.typography.labelMedium) }
-                )
-            }
-        }
-
-        // Play All / Shuffle Buttons
-        item {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 20.dp, vertical = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
-            ) {
-                Button(
-                    onClick = { onPlayAll(filteredSongs, false) },
-                    modifier = Modifier.weight(1f),
-                    shape = CircleShape,
-                    enabled = filteredSongs.isNotEmpty()
-                ) {
-                    Icon(Icons.Default.PlayArrow, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Play All", style = MaterialTheme.typography.labelLarge)
-                }
-
-                FilledTonalButton(
-                    onClick = { onPlayAll(filteredSongs, true) },
-                    modifier = Modifier.weight(1f),
-                    shape = CircleShape,
-                    enabled = filteredSongs.isNotEmpty()
-                ) {
-                    Icon(Icons.Default.Shuffle, contentDescription = null, modifier = Modifier.size(20.dp))
-                    Spacer(modifier = Modifier.width(6.dp))
-                    Text("Shuffle", style = MaterialTheme.typography.labelLarge)
-                }
-            }
-        }
-
-        if (filteredSongs.isEmpty()) {
-            item {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(64.dp),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Icon(
-                            imageVector = Icons.Default.MusicOff,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = "No songs found for this filter",
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-        } else {
-            items(filteredSongs) { song ->
-                SongListItem(
-                    song = song,
-                    isPlaying = isPlaying,
-                    isCurrentSong = currentPlayingSong?.id == song.id,
-                    onClick = { onSongClick(song, filteredSongs) },
-                    onLikeToggle = { onLikeToggle(song) },
-                    onAddToPlaylist = { onAddToPlaylist(song) },
-                    onPlayNext = { onPlayNext(song) },
-                    onAddToQueue = { onAddToQueue(song) },
-                    onDownload = { onDownload(song) },
-                    modifier = Modifier.padding(horizontal = 12.dp)
-                )
-            }
+            )
         }
     }
 }
-

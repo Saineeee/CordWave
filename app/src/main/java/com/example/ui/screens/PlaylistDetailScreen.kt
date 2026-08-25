@@ -8,20 +8,23 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import com.example.model.Playlist
 import com.example.model.Song
+import com.example.ui.components.CollapsibleCommonTopBar
 import com.example.ui.components.SongListItem
+import com.example.ui.components.rememberCollapsibleHeaderState
 
 @Composable
 fun PlaylistDetailScreen(
@@ -41,79 +44,25 @@ fun PlaylistDetailScreen(
     onDownload: (Song) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Scaffold(
-        topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.statusBars)
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(start = 16.dp, end = 20.dp, top = 12.dp, bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f), CircleShape)
-                        .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f),
-                            shape = CircleShape
-                        )
-                        .testTag("playlist_detail_back_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Playlist",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f)
-                )
-                if (playlist.isEditable) {
-                    IconButton(
-                        onClick = onDeletePlaylist,
-                        modifier = Modifier
-                            .size(48.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f), CircleShape)
-                            .testTag("playlist_delete_button")
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.DeleteOutline,
-                            contentDescription = "Delete Playlist",
-                            tint = MaterialTheme.colorScheme.onErrorContainer,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                }
-            }
-        },
-        containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    val headerHeightRange = 180.dp to 56.dp
+    val headerState = rememberCollapsibleHeaderState(headerHeightRange)
+
+    Box(
         modifier = modifier
             .fillMaxSize()
             .testTag("playlist_detail_screen")
-    ) { paddingValues ->
+    ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(bottom = 16.dp)
+                .nestedScroll(headerState.nestedScrollConnection),
+            contentPadding = PaddingValues(top = headerHeightRange.first + 8.dp, bottom = 120.dp)
         ) {
             item {
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Box(
@@ -131,34 +80,15 @@ fun PlaylistDetailScreen(
                         )
                     }
 
-                    Spacer(modifier = Modifier.height(18.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
-                    Text(
-                        text = playlist.title,
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.5).sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    if (playlist.description.isNotBlank()) {
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = playlist.description,
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    Spacer(modifier = Modifier.height(4.dp))
                     Text(
                         text = "${songs.size} tracks",
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
                         color = MaterialTheme.colorScheme.primary
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -223,6 +153,42 @@ fun PlaylistDetailScreen(
                 }
             }
         }
+
+        // Collapsible Top Bar
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(headerState.currentHeaderHeight)
+                .align(Alignment.TopCenter)
+                .zIndex(1f)
+        ) {
+            CollapsibleCommonTopBar(
+                title = playlist.title,
+                subtitle = if (playlist.description.isNotBlank()) playlist.description else "${songs.size} tracks • Playlist",
+                collapseFraction = headerState.collapseFraction,
+                headerHeight = headerState.currentHeaderHeight,
+                showBackButton = true,
+                onBackClick = onBack,
+                actions = {
+                    if (playlist.isEditable) {
+                        IconButton(
+                            onClick = onDeletePlaylist,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .clip(CircleShape)
+                                .background(MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.6f), CircleShape)
+                                .testTag("playlist_delete_button")
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.DeleteOutline,
+                                contentDescription = "Delete Playlist",
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(22.dp)
+                            )
+                        }
+                    }
+                }
+            )
+        }
     }
 }
-

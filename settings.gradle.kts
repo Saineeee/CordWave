@@ -22,6 +22,6 @@ dependencyResolutionManagement {
   }
 }
 
-rootProject.name = "OuterTune"
+rootProject.name = "Psync"
 
 include(":app")

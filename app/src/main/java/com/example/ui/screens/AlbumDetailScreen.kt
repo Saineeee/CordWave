@@ -1,14 +1,12 @@
 package com.example.ui.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Album
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Shuffle
@@ -17,15 +15,19 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.zIndex
 import coil.compose.AsyncImage
 import com.example.model.Album
 import com.example.model.Song
+import com.example.ui.components.CollapsibleCommonTopBar
 import com.example.ui.components.SongListItem
+import com.example.ui.components.rememberCollapsibleHeaderState
 
 @Composable
 fun AlbumDetailScreen(
@@ -43,62 +45,26 @@ fun AlbumDetailScreen(
     onDownload: (Song) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Scaffold(
-        topBar = {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .windowInsetsPadding(WindowInsets.statusBars)
-                    .background(MaterialTheme.colorScheme.background)
-                    .padding(start = 16.dp, end = 20.dp, top = 12.dp, bottom = 8.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = onBack,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.3f), CircleShape)
-                        .border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.15f),
-                            shape = CircleShape
-                        )
-                        .testTag("album_detail_back_button")
-                ) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.ArrowBack,
-                        contentDescription = "Back",
-                        tint = MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(22.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = "Album Details",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-        },
-        containerColor = MaterialTheme.colorScheme.background,
-        contentWindowInsets = WindowInsets(0, 0, 0, 0),
+    val headerHeightRange = 180.dp to 56.dp
+    val headerState = rememberCollapsibleHeaderState(headerHeightRange)
+
+    Box(
         modifier = modifier
             .fillMaxSize()
             .testTag("album_detail_screen")
-    ) { paddingValues ->
+    ) {
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues),
-            contentPadding = PaddingValues(bottom = 16.dp)
+                .nestedScroll(headerState.nestedScrollConnection),
+            contentPadding = PaddingValues(top = headerHeightRange.first + 8.dp, bottom = 120.dp)
         ) {
             item {
                 // Cover and Album info
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 20.dp, vertical = 12.dp),
+                        .padding(horizontal = 20.dp, vertical = 8.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Box(
@@ -125,18 +91,7 @@ fun AlbumDetailScreen(
                         }
                     }
 
-                    Spacer(modifier = Modifier.height(18.dp))
-
-                    Text(
-                        text = album.title,
-                        style = MaterialTheme.typography.headlineSmall.copy(
-                            fontWeight = FontWeight.ExtraBold,
-                            letterSpacing = (-0.5).sp
-                        ),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-
-                    Spacer(modifier = Modifier.height(4.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Text(
                         text = "${album.artist} • ${album.year ?: "Album"}",
@@ -152,7 +107,7 @@ fun AlbumDetailScreen(
                         color = MaterialTheme.colorScheme.primary
                     )
 
-                    Spacer(modifier = Modifier.height(20.dp))
+                    Spacer(modifier = Modifier.height(16.dp))
 
                     Row(
                         modifier = Modifier.fillMaxWidth(),
@@ -200,6 +155,23 @@ fun AlbumDetailScreen(
                 )
             }
         }
+
+        // Collapsible Top Bar
+        Box(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(headerState.currentHeaderHeight)
+                .align(Alignment.TopCenter)
+                .zIndex(1f)
+        ) {
+            CollapsibleCommonTopBar(
+                title = album.title,
+                subtitle = "${album.artist} • ${songs.size} tracks",
+                collapseFraction = headerState.collapseFraction,
+                headerHeight = headerState.currentHeaderHeight,
+                showBackButton = true,
+                onBackClick = onBack
+            )
+        }
     }
 }
-

@@ -62,15 +62,58 @@ class MusicPlayerUnitTest {
     }
 
     @Test
-    fun testSongLikeToggle() {
-        val song = Song(
-            id = "s_1",
-            title = "Test Song",
-            artist = "Artist",
-            isLiked = false
-        )
-        assertFalse(song.isLiked)
-        val liked = song.copy(isLiked = true)
-        assertTrue(liked.isLiked)
+    fun testSettingsCategoryResolution() {
+        val appearance = com.example.presentation.model.SettingsCategory.fromId("appearance")
+        assertEquals(com.example.presentation.model.SettingsCategory.APPEARANCE, appearance)
+        assertEquals("Appearance", appearance?.title)
+
+        val library = com.example.presentation.model.SettingsCategory.fromId("library")
+        assertEquals(com.example.presentation.model.SettingsCategory.LIBRARY, library)
+
+        val importPlaylist = com.example.presentation.model.SettingsCategory.fromId("import_playlist")
+        assertEquals(com.example.presentation.model.SettingsCategory.IMPORT_PLAYLIST, importPlaylist)
+        assertEquals("Import Playlist", importPlaylist?.title)
+
+        val unknown = com.example.presentation.model.SettingsCategory.fromId("unknown_id")
+        assertNull(unknown)
+    }
+
+    @Test
+    fun testPlaylistUrlParser() {
+        val parser = com.example.data.playlistimport.PlaylistUrlParser()
+
+        val spotifyUrl = "https://open.spotify.com/playlist/37i9dQZF1DXcBWIGoYBM5M?si=123"
+        assertEquals(com.example.data.playlistimport.PlaylistSource.SPOTIFY, parser.detectSource(spotifyUrl))
+        assertEquals("37i9dQZF1DXcBWIGoYBM5M", parser.extractId(spotifyUrl))
+
+        val appleUrl = "https://music.apple.com/us/playlist/todays-hits/pl.f4d106fed2bd41149aaacabb233eb5eb"
+        assertEquals(com.example.data.playlistimport.PlaylistSource.APPLE_MUSIC, parser.detectSource(appleUrl))
+        assertEquals("pl.f4d106fed2bd41149aaacabb233eb5eb", parser.extractId(appleUrl))
+
+        val ytUrl = "https://music.youtube.com/playlist?list=PL4fGSI1pDJn6jXS_5NWD36m_R4Bq92330"
+        assertEquals(com.example.data.playlistimport.PlaylistSource.YOUTUBE_MUSIC, parser.detectSource(ytUrl))
+        assertEquals("PL4fGSI1pDJn6jXS_5NWD36m_R4Bq92330", parser.extractId(ytUrl))
+    }
+
+    @Test
+    fun testSongMatcherFallback() = kotlinx.coroutines.runBlocking {
+        val matcher = com.example.data.playlistimport.SongMatcher()
+        val track = com.example.data.playlistimport.RemoteTrack(title = "Starboy", artist = "The Weeknd")
+        val matched = matcher.matchTrack(track)
+        assertTrue(matched.isMatched)
+        assertNotNull(matched.matchedSong)
+        assertEquals("Starboy", matched.matchedSong?.title)
+    }
+
+    @Test
+    fun testUserPreferencesDefaults() {
+        val prefs = com.example.data.preferences.UserPreferences()
+        assertTrue(prefs.isDarkTheme)
+        assertFalse(prefs.isOled)
+        assertTrue(prefs.dynamicColor)
+        assertEquals(0, prefs.accentIndex)
+        assertEquals("DARK", prefs.appThemeMode)
+        assertEquals("ALBUM_ART", prefs.playerThemePreference)
+        assertEquals("FLOATING", prefs.navBarStyle)
     }
 }

@@ -81,30 +81,82 @@ private val PixelPlayerLightColorScheme = lightColorScheme(
     outline = LightOutline
 )
 
+fun getAccentColorScheme(index: Int, isDark: Boolean, isOled: Boolean): ColorScheme {
+    val primaryColor = when (index) {
+        1 -> PixelPlayerOrange
+        2 -> Color(0xFF4CAF50)
+        3 -> PixelPlayerPink
+        4 -> Color(0xFF42A5F5)
+        else -> PixelPlayerPurplePrimary
+    }
+
+    return if (isDark) {
+        val bg = if (isOled) Color(0xFF000000) else PixelPlayerPurpleDark
+        val surf = if (isOled) Color(0xFF0C0C0E) else PixelPlayerSurface
+        val surfLow = if (isOled) Color(0xFF121216) else Color(0xFF1B1B1F)
+        val surfCont = if (isOled) Color(0xFF18181D) else Color(0xFF1F1F24)
+        val surfHigh = if (isOled) Color(0xFF222228) else Color(0xFF2B2930)
+
+        PixelPlayerDarkColorScheme.copy(
+            primary = primaryColor,
+            primaryContainer = primaryColor.copy(alpha = 0.25f),
+            onPrimaryContainer = primaryColor,
+            surfaceTint = primaryColor,
+            background = bg,
+            surface = surf,
+            surfaceContainerLowest = if (isOled) Color.Black else Color(0xFF0E0E11),
+            surfaceContainerLow = surfLow,
+            surfaceContainer = surfCont,
+            surfaceContainerHigh = surfHigh
+        )
+    } else {
+        PixelPlayerLightColorScheme.copy(
+            primary = primaryColor,
+            primaryContainer = primaryColor.copy(alpha = 0.2f),
+            onPrimaryContainer = primaryColor
+        )
+    }
+}
+
 @Composable
 fun MyApplicationTheme(
     darkTheme: Boolean = true,
     dynamicColor: Boolean = true,
+    isOled: Boolean = false,
+    accentIndex: Int = 0,
     colorSchemePairOverride: Pair<ColorScheme, ColorScheme>? = null,
     content: @Composable () -> Unit
 ) {
     val context = LocalContext.current
 
-    val colorScheme = when {
+    val baseScheme = when {
         colorSchemePairOverride != null -> {
             if (darkTheme) colorSchemePairOverride.first else colorSchemePairOverride.second
         }
         dynamicColor && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
         }
-        darkTheme -> PixelPlayerDarkColorScheme
-        else -> PixelPlayerLightColorScheme
+        else -> getAccentColorScheme(accentIndex, darkTheme, isOled)
     }
 
-    PixelPlayerStatusBarStyle(colorScheme.background)
+    val finalScheme = if (darkTheme && isOled) {
+        baseScheme.copy(
+            background = Color(0xFF000000),
+            surface = Color(0xFF0A0A0C),
+            surfaceContainerLowest = Color.Black,
+            surfaceContainerLow = Color(0xFF121215),
+            surfaceContainer = Color(0xFF17171C),
+            surfaceContainerHigh = Color(0xFF202026),
+            surfaceContainerHighest = Color(0xFF2B2B32)
+        )
+    } else {
+        baseScheme
+    }
+
+    PixelPlayerStatusBarStyle(finalScheme.background)
 
     MaterialTheme(
-        colorScheme = colorScheme,
+        colorScheme = finalScheme,
         typography = Typography,
         content = content
     )

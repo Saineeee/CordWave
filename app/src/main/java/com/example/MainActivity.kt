@@ -24,8 +24,16 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.core.view.WindowCompat
+import com.example.model.Album
+import com.example.model.Artist
 import com.example.model.MediaFolder
+import com.example.model.Playlist
 import com.example.model.Song
+import com.example.presentation.viewmodel.SettingsViewModel
+import com.example.ui.animation.enterTransition
+import com.example.ui.animation.exitTransition
+import com.example.ui.animation.popEnterTransition
+import com.example.ui.animation.popExitTransition
 import com.example.ui.components.*
 import com.example.ui.screens.*
 import com.example.ui.theme.MyApplicationTheme
@@ -33,6 +41,7 @@ import com.example.ui.theme.MyApplicationTheme
 class MainActivity : ComponentActivity() {
 
     private val viewModel: MainViewModel by viewModels()
+    private val settingsViewModel: SettingsViewModel by viewModels()
 
     private val permissionLauncher = registerForActivityResult(
         ActivityResultContracts.RequestMultiplePermissions()
@@ -50,13 +59,23 @@ class MainActivity : ComponentActivity() {
         checkAndRequestPermissions()
 
         setContent {
-            val useDynamicColor by viewModel.useDynamicColor.collectAsState()
+            val settingsUiState by settingsViewModel.uiState.collectAsState()
+            val isDark = when (settingsUiState.appThemeMode) {
+                "LIGHT" -> false
+                "DARK" -> true
+                else -> true
+            }
 
             MyApplicationTheme(
-                darkTheme = true,
-                dynamicColor = useDynamicColor
+                darkTheme = isDark,
+                dynamicColor = settingsUiState.dynamicColor,
+                isOled = settingsUiState.isOled,
+                accentIndex = settingsUiState.accentIndex
             ) {
-                OuterTuneMainApp(viewModel = viewModel)
+                OuterTuneMainApp(
+                    viewModel = viewModel,
+                    settingsViewModel = settingsViewModel
+                )
             }
         }
     }
@@ -82,9 +101,35 @@ class MainActivity : ComponentActivity() {
     }
 }
 
+private sealed interface AppScreen {
+    val depth: Int
+
+    data object Home : AppScreen { override val depth = 0 }
+    data object Search : AppScreen { override val depth = 0 }
+    data object Library : AppScreen { override val depth = 0 }
+    data object Songs : AppScreen { override val depth = 1 }
+    data object AlbumsArtists : AppScreen { override val depth = 1 }
+    data object Folders : AppScreen { override val depth = 1 }
+    data object Stats : AppScreen { override val depth = 2 }
+    data object Settings : AppScreen { override val depth = 2 }
+    data class SettingsCategory(val categoryId: String) : AppScreen { override val depth = 3 }
+    data object PaletteStyle : AppScreen { override val depth = 4 }
+    data object ArtistSettings : AppScreen { override val depth = 4 }
+    data object Accounts : AppScreen { override val depth = 4 }
+    data object DeviceCapabilities : AppScreen { override val depth = 4 }
+    data object About : AppScreen { override val depth = 4 }
+    data class AlbumDetail(val album: Album) : AppScreen { override val depth = 2 }
+    data class ArtistDetail(val artist: Artist) : AppScreen { override val depth = 2 }
+    data class PlaylistDetail(val playlist: Playlist) : AppScreen { override val depth = 2 }
+    data class FolderDetail(val folder: MediaFolder) : AppScreen { override val depth = 2 }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun OuterTuneMainApp(viewModel: MainViewModel) {
+fun OuterTuneMainApp(
+    viewModel: MainViewModel,
+    settingsViewModel: SettingsViewModel? = null
+) {
     val currentTab by viewModel.currentTab.collectAsState()
     val isNowPlayingExpanded by viewModel.isNowPlayingExpanded.collectAsState()
     val showQueueSheet by viewModel.showQueueSheet.collectAsState()
@@ -93,6 +138,8 @@ fun OuterTuneMainApp(viewModel: MainViewModel) {
     val songToAddToPlaylist by viewModel.songToAddToPlaylist.collectAsState()
     val showStatsScreen by viewModel.showStatsScreen.collectAsState()
     val showSettingsScreen by viewModel.showSettingsScreen.collectAsState()
+
+    var settingsSubRoute by remember { mutableStateOf<String?>(null) }
 
     // Sub-screens
     val selectedAlbum by viewModel.selectedAlbum.collectAsState()
@@ -137,6 +184,43 @@ fun OuterTuneMainApp(viewModel: MainViewModel) {
     val accentIndex by viewModel.accentColorIndex.collectAsState()
     val useDynamicColor by viewModel.useDynamicColor.collectAsState()
 
+    val currentScreen: AppScreen = when {
+        showStatsScreen -> AppScreen.Stats
+        showSettingsScreen -> {
+            when {
+                settingsSubRoute == null -> AppScreen.Settings
+                settingsSubRoute?.startsWith("settings_category/") == true -> {
+                    AppScreen.SettingsCategory(settingsSubRoute!!.removePrefix("settings_category/"))
+                }
+                settingsSubRoute?.startsWith("playlist_detail/") == true -> {
+                    val playlistId = settingsSubRoute!!.removePrefix("playlist_detail/")
+                    val playlist = customPlaylists.firstOrNull { it.id == playlistId }
+                    if (playlist != null) AppScreen.PlaylistDetail(playlist) else AppScreen.Settings
+                }
+                settingsSubRoute == "about" -> AppScreen.About
+                settingsSubRoute == "palette_style" -> AppScreen.PaletteStyle
+                settingsSubRoute == "artist_settings" -> AppScreen.ArtistSettings
+                settingsSubRoute == "accounts" -> AppScreen.Accounts
+                settingsSubRoute == "device_capabilities" -> AppScreen.DeviceCapabilities
+                else -> AppScreen.Settings
+            }
+        }
+        selectedAlbum != null -> AppScreen.AlbumDetail(selectedAlbum!!)
+        selectedArtist != null -> AppScreen.ArtistDetail(selectedArtist!!)
+        selectedPlaylist != null -> AppScreen.PlaylistDetail(selectedPlaylist!!)
+        selectedFolder != null -> AppScreen.FolderDetail(selectedFolder!!)
+        else -> {
+            when (currentTab) {
+                MainNavTab.HOME -> AppScreen.Home
+                MainNavTab.SONGS -> AppScreen.Songs
+                MainNavTab.LIBRARY -> AppScreen.Library
+                MainNavTab.ALBUMS_ARTISTS -> AppScreen.AlbumsArtists
+                MainNavTab.FOLDERS -> AppScreen.Folders
+                MainNavTab.SEARCH -> AppScreen.Search
+            }
+        }
+    }
+
     val progress = if (duration > 0) (currentPos.toFloat() / duration.toFloat()) else 0f
     val isAnySubScreenOpen = selectedAlbum != null || selectedArtist != null || selectedPlaylist != null || selectedFolder != null || showStatsScreen || showSettingsScreen
 
@@ -156,7 +240,19 @@ fun OuterTuneMainApp(viewModel: MainViewModel) {
         when {
             isNowPlayingExpanded -> viewModel.setNowPlayingExpanded(false)
             showStatsScreen -> viewModel.closeStats()
-            showSettingsScreen -> viewModel.closeSettings()
+            showSettingsScreen -> {
+                if (settingsSubRoute != null) {
+                    if (settingsSubRoute == "palette_style") {
+                        settingsSubRoute = "settings_category/appearance"
+                    } else if (settingsSubRoute == "artist_settings") {
+                        settingsSubRoute = "settings_category/library"
+                    } else {
+                        settingsSubRoute = null
+                    }
+                } else {
+                    viewModel.closeSettings()
+                }
+            }
             selectedAlbum != null -> viewModel.selectAlbum(null)
             selectedArtist != null -> viewModel.selectArtist(null)
             selectedPlaylist != null -> viewModel.selectPlaylist(null)
@@ -214,33 +310,66 @@ fun OuterTuneMainApp(viewModel: MainViewModel) {
             contentWindowInsets = WindowInsets(0, 0, 0, 0),
             modifier = Modifier.fillMaxSize()
         ) { innerPadding ->
-            Box(
+            AnimatedContent(
+                targetState = currentScreen,
+                transitionSpec = {
+                    if (targetState.depth >= initialState.depth) {
+                        enterTransition() togetherWith exitTransition()
+                    } else {
+                        popEnterTransition() togetherWith popExitTransition()
+                    }
+                },
+                label = "AppNavigationTransition",
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(innerPadding)
-            ) {
-                when {
-                    showStatsScreen -> {
+            ) { targetScreen ->
+                when (targetScreen) {
+                    is AppScreen.Stats -> {
                         StatsScreen(
                             topPlayedSongs = topPlayed,
                             onBack = { viewModel.closeStats() }
                         )
                     }
-                    showSettingsScreen -> {
+                    is AppScreen.Settings -> {
                         SettingsScreen(
-                            isOledBlack = isOled,
-                            useDynamicColor = useDynamicColor,
-                            accentIndex = accentIndex,
-                            onToggleOled = { viewModel.toggleOledBlack() },
-                            onToggleDynamicColor = { viewModel.toggleDynamicColor() },
-                            onSelectAccent = { viewModel.setAccentColor(it) },
+                            onNavigateToCategory = { categoryId ->
+                                settingsSubRoute = "settings_category/$categoryId"
+                            },
                             onOpenEqualizer = { viewModel.setShowEqualizer(true) },
-                            onRescanLibrary = { viewModel.rescanLocalLibrary() },
+                            onOpenDeviceCapabilities = { settingsSubRoute = "device_capabilities" },
+                            onOpenAccounts = { settingsSubRoute = "accounts" },
+                            onOpenAbout = { settingsSubRoute = "about" },
                             onBack = { viewModel.closeSettings() }
                         )
                     }
-                    selectedAlbum != null -> {
-                        val album = selectedAlbum!!
+                    is AppScreen.SettingsCategory -> {
+                        SettingsCategoryScreen(
+                            categoryId = targetScreen.categoryId,
+                            onBackClick = { settingsSubRoute = null },
+                            settingsViewModel = settingsViewModel,
+                            onOpenEqualizer = { viewModel.setShowEqualizer(true) },
+                            onOpenSleepTimer = { viewModel.setShowSleepTimer(true) },
+                            onNavigateToRoute = { route -> settingsSubRoute = route }
+                        )
+                    }
+                    is AppScreen.About -> {
+                        AboutScreen(onBack = { settingsSubRoute = null })
+                    }
+                    is AppScreen.PaletteStyle -> {
+                        PaletteStyleScreen(onBack = { settingsSubRoute = "settings_category/appearance" })
+                    }
+                    is AppScreen.ArtistSettings -> {
+                        ArtistSettingsScreen(onBack = { settingsSubRoute = "settings_category/library" })
+                    }
+                    is AppScreen.Accounts -> {
+                        AccountsScreen(onBack = { settingsSubRoute = null })
+                    }
+                    is AppScreen.DeviceCapabilities -> {
+                        DeviceCapabilitiesScreen(onBack = { settingsSubRoute = null })
+                    }
+                    is AppScreen.AlbumDetail -> {
+                        val album = targetScreen.album
                         val albumSongs = allSongs.filter { it.album == album.title }
                         AlbumDetailScreen(
                             album = album,
@@ -257,8 +386,8 @@ fun OuterTuneMainApp(viewModel: MainViewModel) {
                             onDownload = { viewModel.downloadSong(it) }
                         )
                     }
-                    selectedArtist != null -> {
-                        val artist = selectedArtist!!
+                    is AppScreen.ArtistDetail -> {
+                        val artist = targetScreen.artist
                         val artistSongs = allSongs.filter { it.artist == artist.name }
                         ArtistDetailScreen(
                             artist = artist,
@@ -275,15 +404,20 @@ fun OuterTuneMainApp(viewModel: MainViewModel) {
                             onDownload = { viewModel.downloadSong(it) }
                         )
                     }
-                    selectedPlaylist != null -> {
-                        val playlist = selectedPlaylist!!
+                    is AppScreen.PlaylistDetail -> {
+                        val playlist = targetScreen.playlist
                         val playlistSongs by viewModel.repository.getSongsForPlaylist(playlist.id).collectAsState(initial = emptyList())
                         PlaylistDetailScreen(
                             playlist = playlist,
                             songs = playlistSongs,
                             currentPlayingSong = currentSong,
                             isPlaying = isPlaying,
-                            onBack = { viewModel.selectPlaylist(null) },
+                            onBack = {
+                                if (settingsSubRoute != null) {
+                                    settingsSubRoute = null
+                                }
+                                viewModel.selectPlaylist(null)
+                            },
                             onPlayAll = { songs, shuffle -> viewModel.playAll(songs, shuffle) },
                             onSongClick = { song, list -> viewModel.playSong(song, list) },
                             onLikeToggle = { viewModel.toggleLike(it) },
@@ -295,8 +429,8 @@ fun OuterTuneMainApp(viewModel: MainViewModel) {
                             onDownload = { viewModel.downloadSong(it) }
                         )
                     }
-                    selectedFolder != null -> {
-                        val folder = selectedFolder!!
+                    is AppScreen.FolderDetail -> {
+                        val folder = targetScreen.folder
                         FolderDetailScreen(
                             folder = folder,
                             currentPlayingSong = currentSong,
@@ -311,121 +445,117 @@ fun OuterTuneMainApp(viewModel: MainViewModel) {
                             onDownload = { viewModel.downloadSong(it) }
                         )
                     }
-                    else -> {
-                        when (currentTab) {
-                            MainNavTab.HOME -> {
-                                HomeScreen(
-                                    quickPicks = quickPicks,
-                                    trendingSongs = trendingSongs,
-                                    recentHistory = recentHistory,
-                                    localSongs = localSongs,
-                                    moodPlaylists = moodPlaylists,
-                                    currentPlayingSong = currentSong,
-                                    isPlaying = isPlaying,
-                                    onSongClick = { song, list -> viewModel.playSong(song, list) },
-                                    onPlayAll = { songs, shuffle -> viewModel.playAll(songs, shuffle) },
-                                    onLikeToggle = { viewModel.toggleLike(it) },
-                                    onAddToPlaylist = { viewModel.setSongForPlaylist(it) },
-                                    onPlayNext = { viewModel.playerController.addToQueueNext(it) },
-                                    onAddToQueue = { viewModel.playerController.addToQueueEnd(it) },
-                                    onDownload = { viewModel.downloadSong(it) },
-                                    onOpenStats = { viewModel.openStats() },
-                                    onOpenSettings = { viewModel.openSettings() },
-                                    onRescanLocal = { viewModel.rescanLocalLibrary() }
+                    is AppScreen.Home -> {
+                        HomeScreen(
+                            quickPicks = quickPicks,
+                            trendingSongs = trendingSongs,
+                            recentHistory = recentHistory,
+                            localSongs = localSongs,
+                            moodPlaylists = moodPlaylists,
+                            currentPlayingSong = currentSong,
+                            isPlaying = isPlaying,
+                            onSongClick = { song, list -> viewModel.playSong(song, list) },
+                            onPlayAll = { songs, shuffle -> viewModel.playAll(songs, shuffle) },
+                            onLikeToggle = { viewModel.toggleLike(it) },
+                            onAddToPlaylist = { viewModel.setSongForPlaylist(it) },
+                            onPlayNext = { viewModel.playerController.addToQueueNext(it) },
+                            onAddToQueue = { viewModel.playerController.addToQueueEnd(it) },
+                            onDownload = { viewModel.downloadSong(it) },
+                            onOpenStats = { viewModel.openStats() },
+                            onOpenSettings = { viewModel.openSettings() },
+                            onRescanLocal = { viewModel.rescanLocalLibrary() }
+                        )
+                    }
+                    is AppScreen.Songs -> {
+                        SongsScreen(
+                            allSongs = allSongs,
+                            downloads = downloads,
+                            currentPlayingSong = currentSong,
+                            isPlaying = isPlaying,
+                            onSongClick = { song, list -> viewModel.playSong(song, list) },
+                            onPlayAll = { songs, shuffle -> viewModel.playAll(songs, shuffle) },
+                            onLikeToggle = { viewModel.toggleLike(it) },
+                            onAddToPlaylist = { viewModel.setSongForPlaylist(it) },
+                            onPlayNext = { viewModel.playerController.addToQueueNext(it) },
+                            onAddToQueue = { viewModel.playerController.addToQueueEnd(it) },
+                            onDownload = { viewModel.downloadSong(it) }
+                        )
+                    }
+                    is AppScreen.Library -> {
+                        LibraryScreen(
+                            likedSongs = likedSongs,
+                            downloads = downloads,
+                            recentHistory = recentHistory,
+                            playlists = customPlaylists,
+                            allSongs = allSongs,
+                            currentPlayingSong = currentSong,
+                            isPlaying = isPlaying,
+                            onSongClick = { song, list -> viewModel.playSong(song, list) },
+                            onPlayAll = { songs, shuffle -> viewModel.playAll(songs, shuffle) },
+                            onLikeToggle = { viewModel.toggleLike(it) },
+                            onAddToPlaylist = { viewModel.setSongForPlaylist(it) },
+                            onPlayNext = { viewModel.playerController.addToQueueNext(it) },
+                            onAddToQueue = { viewModel.playerController.addToQueueEnd(it) },
+                            onDownload = { viewModel.downloadSong(it) },
+                            onOpenLikedSongs = {
+                                viewModel.selectPlaylist(
+                                    com.example.model.Playlist(
+                                        id = "liked_songs",
+                                        title = "Liked Songs",
+                                        description = "Your favorite tracks",
+                                        isEditable = false
+                                    )
                                 )
+                            },
+                            onOpenDownloads = { viewModel.setTab(MainNavTab.SONGS) },
+                            onOpenHistory = { viewModel.openStats() },
+                            onOpenFolders = { viewModel.setTab(MainNavTab.FOLDERS) },
+                            onSelectPlaylist = { viewModel.selectPlaylist(it) },
+                            onCreatePlaylist = { viewModel.createPlaylist(it) },
+                            onDeletePlaylist = { viewModel.deletePlaylist(it) },
+                            onSelectAlbum = { viewModel.selectAlbum(it) },
+                            onSelectArtist = { viewModel.selectArtist(it) },
+                            onSelectFolder = { viewModel.selectFolder(it) },
+                            onOpenSettings = { viewModel.openSettings() }
+                        )
+                    }
+                    is AppScreen.AlbumsArtists -> {
+                        AlbumsArtistsScreen(
+                            allSongs = allSongs,
+                            onSelectAlbum = { viewModel.selectAlbum(it) },
+                            onSelectArtist = { viewModel.selectArtist(it) },
+                            onPlayAlbum = { album ->
+                                val albumSongs = allSongs.filter { it.album == album.title }
+                                viewModel.playAll(albumSongs, false)
                             }
-                            MainNavTab.SONGS -> {
-                                SongsScreen(
-                                    allSongs = allSongs,
-                                    downloads = downloads,
-                                    currentPlayingSong = currentSong,
-                                    isPlaying = isPlaying,
-                                    onSongClick = { song, list -> viewModel.playSong(song, list) },
-                                    onPlayAll = { songs, shuffle -> viewModel.playAll(songs, shuffle) },
-                                    onLikeToggle = { viewModel.toggleLike(it) },
-                                    onAddToPlaylist = { viewModel.setSongForPlaylist(it) },
-                                    onPlayNext = { viewModel.playerController.addToQueueNext(it) },
-                                    onAddToQueue = { viewModel.playerController.addToQueueEnd(it) },
-                                    onDownload = { viewModel.downloadSong(it) }
-                                )
+                        )
+                    }
+                    is AppScreen.Folders -> {
+                        FoldersScreen(
+                            localSongs = localSongs,
+                            onSelectFolder = { viewModel.selectFolder(it) },
+                            onPlayFolder = { folder ->
+                                viewModel.playAll(folder.songs, false)
                             }
-                            MainNavTab.LIBRARY -> {
-                                LibraryScreen(
-                                    likedSongs = likedSongs,
-                                    downloads = downloads,
-                                    recentHistory = recentHistory,
-                                    playlists = customPlaylists,
-                                    allSongs = allSongs,
-                                    currentPlayingSong = currentSong,
-                                    isPlaying = isPlaying,
-                                    onSongClick = { song, list -> viewModel.playSong(song, list) },
-                                    onPlayAll = { songs, shuffle -> viewModel.playAll(songs, shuffle) },
-                                    onLikeToggle = { viewModel.toggleLike(it) },
-                                    onAddToPlaylist = { viewModel.setSongForPlaylist(it) },
-                                    onPlayNext = { viewModel.playerController.addToQueueNext(it) },
-                                    onAddToQueue = { viewModel.playerController.addToQueueEnd(it) },
-                                    onDownload = { viewModel.downloadSong(it) },
-                                    onOpenLikedSongs = {
-                                        viewModel.selectPlaylist(
-                                            com.example.model.Playlist(
-                                                id = "liked_songs",
-                                                title = "Liked Songs",
-                                                description = "Your favorite tracks",
-                                                isEditable = false
-                                            )
-                                        )
-                                    },
-                                    onOpenDownloads = { viewModel.setTab(MainNavTab.SONGS) },
-                                    onOpenHistory = { viewModel.openStats() },
-                                    onOpenFolders = { viewModel.setTab(MainNavTab.FOLDERS) },
-                                    onSelectPlaylist = { viewModel.selectPlaylist(it) },
-                                    onCreatePlaylist = { viewModel.createPlaylist(it) },
-                                    onDeletePlaylist = { viewModel.deletePlaylist(it) },
-                                    onSelectAlbum = { viewModel.selectAlbum(it) },
-                                    onSelectArtist = { viewModel.selectArtist(it) },
-                                    onSelectFolder = { viewModel.selectFolder(it) },
-                                    onOpenSettings = { viewModel.openSettings() }
-                                )
-                            }
-                            MainNavTab.ALBUMS_ARTISTS -> {
-                                AlbumsArtistsScreen(
-                                    allSongs = allSongs,
-                                    onSelectAlbum = { viewModel.selectAlbum(it) },
-                                    onSelectArtist = { viewModel.selectArtist(it) },
-                                    onPlayAlbum = { album ->
-                                        val albumSongs = allSongs.filter { it.album == album.title }
-                                        viewModel.playAll(albumSongs, false)
-                                    }
-                                )
-                            }
-                            MainNavTab.FOLDERS -> {
-                                FoldersScreen(
-                                    localSongs = localSongs,
-                                    onSelectFolder = { viewModel.selectFolder(it) },
-                                    onPlayFolder = { folder ->
-                                        viewModel.playAll(folder.songs, false)
-                                    }
-                                )
-                            }
-                            MainNavTab.SEARCH -> {
-                                SearchScreen(
-                                    query = searchQuery,
-                                    searchResults = searchResults,
-                                    isSearching = isSearching,
-                                    currentPlayingSong = currentSong,
-                                    isPlaying = isPlaying,
-                                    onQueryChange = { viewModel.search(it) },
-                                    onSongClick = { song, list -> viewModel.playSong(song, list) },
-                                    onSelectAlbum = { viewModel.selectAlbum(it) },
-                                    onSelectArtist = { viewModel.selectArtist(it) },
-                                    onLikeToggle = { viewModel.toggleLike(it) },
-                                    onAddToPlaylist = { viewModel.setSongForPlaylist(it) },
-                                    onPlayNext = { viewModel.playerController.addToQueueNext(it) },
-                                    onAddToQueue = { viewModel.playerController.addToQueueEnd(it) },
-                                    onDownload = { viewModel.downloadSong(it) }
-                                )
-                            }
-                        }
+                        )
+                    }
+                    is AppScreen.Search -> {
+                        SearchScreen(
+                            query = searchQuery,
+                            searchResults = searchResults,
+                            isSearching = isSearching,
+                            currentPlayingSong = currentSong,
+                            isPlaying = isPlaying,
+                            onQueryChange = { viewModel.search(it) },
+                            onSongClick = { song, list -> viewModel.playSong(song, list) },
+                            onSelectAlbum = { viewModel.selectAlbum(it) },
+                            onSelectArtist = { viewModel.selectArtist(it) },
+                            onLikeToggle = { viewModel.toggleLike(it) },
+                            onAddToPlaylist = { viewModel.setSongForPlaylist(it) },
+                            onPlayNext = { viewModel.playerController.addToQueueNext(it) },
+                            onAddToQueue = { viewModel.playerController.addToQueueEnd(it) },
+                            onDownload = { viewModel.downloadSong(it) }
+                        )
                     }
                 }
             }
@@ -434,8 +564,8 @@ fun OuterTuneMainApp(viewModel: MainViewModel) {
         // Full Now Playing overlay screen
         AnimatedVisibility(
             visible = isNowPlayingExpanded && currentSong != null,
-            enter = slideInVertically(initialOffsetY = { it }) + fadeIn(),
-            exit = slideOutVertically(targetOffsetY = { it }) + fadeOut(),
+            enter = enterTransition(),
+            exit = popExitTransition(),
             modifier = Modifier.fillMaxSize()
         ) {
             NowPlayingScreen(
